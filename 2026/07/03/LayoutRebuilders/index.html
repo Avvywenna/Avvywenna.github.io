@@ -1,0 +1,446 @@
+<!DOCTYPE html><html lang="zh" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>UGUI 源码剖析 —— LayoutRebuilder | Welcome</title><meta name="author" content="Avywenna"><meta name="copyright" content="Avywenna"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta name="description" content="深入理解 UGUI 中 LayoutRebuilder 的布局重建机制">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UGUI 源码剖析 —— LayoutRebuilder">
+<meta property="og:url" content="https://avvywenna.github.io/2026/07/03/LayoutRebuilders/index.html">
+<meta property="og:site_name" content="Welcome">
+<meta property="og:description" content="深入理解 UGUI 中 LayoutRebuilder 的布局重建机制">
+<meta property="og:locale">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg">
+<meta property="article:published_time" content="2026-07-03T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-03T10:04:18.000Z">
+<meta property="article:author" content="Avywenna">
+<meta property="article:tag" content="LayoutRebuilder">
+<meta property="article:tag" content="UGUI">
+<meta property="article:tag" content="Unity">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "UGUI 源码剖析 —— LayoutRebuilder",
+  "url": "https://avvywenna.github.io/2026/07/03/LayoutRebuilders/",
+  "image": "https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg",
+  "datePublished": "2026-07-03T00:00:00.000Z",
+  "dateModified": "2026-07-03T10:04:18.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Avywenna",
+      "url": "https://avvywenna.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/"><link rel="canonical" href="https://avvywenna.github.io/2026/07/03/LayoutRebuilders/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'UGUI 源码剖析 —— LayoutRebuilder',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.1"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Welcome</span></a><a class="nav-page-title" href="/"><span class="site-name">UGUI 源码剖析 —— LayoutRebuilder</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">UGUI 源码剖析 —— LayoutRebuilder</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-07-03T00:00:00.000Z" title="Created 2026-07-03 00:00:00">2026-07-03</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-07-03T10:04:18.000Z" title="Updated 2026-07-03 10:04:18">2026-07-03</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/">Unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/UGUI/">UGUI</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="一、LayoutRebuilder-是什么？"><a href="#一、LayoutRebuilder-是什么？" class="headerlink" title="一、LayoutRebuilder 是什么？"></a>一、LayoutRebuilder 是什么？</h1><p><code>LayoutRebuilder</code> 是 UGUI 布局系统的 <strong>“执行器”</strong>。它的核心职责是：</p>
+<ol>
+<li><strong>触发布局重建</strong>：提供 <code>MarkLayoutForRebuild</code> 和 <code>ForceRebuildLayoutImmediate</code> 两个入口，启动布局计算流程。</li>
+<li><strong>执行布局计算</strong>：在 <code>Rebuild</code> 方法中，按“水平 → 垂直”、“子节点 → 父节点 → 子节点”的顺序，完成所有 <code>ILayoutElement</code> 的尺寸计算和位置控制。</li>
+<li><strong>对接调度中心</strong>：自身实现 <code>ICanvasElement</code> 接口，可以注册到 <code>CanvasUpdateRegistry</code> 的 <code>m_LayoutRebuildQueue</code> 中，参与统一的 UI 重建管线。</li>
+</ol>
+<hr>
+<h1 id="二、为什么需要-LayoutRebuilder？"><a href="#二、为什么需要-LayoutRebuilder？" class="headerlink" title="二、为什么需要 LayoutRebuilder？"></a>二、为什么需要 LayoutRebuilder？</h1><p><code>Graphic</code> 可以直接将自己注册到 <code>CanvasUpdateRegistry</code>，但 <strong><code>Layout</code> 组件不行</strong>。原因在于：</p>
+<ul>
+<li>一个 <code>LayoutGroup</code> 的布局重建，不仅仅影响自身，还会递归影响其父节点和子节点。</li>
+<li>同一帧内可能有多个布局组件同时被标记为“脏”，需要统一排序（按层级深度自下而上）后再执行。</li>
+</ul>
+<p><code>LayoutRebuilder</code> 的作用就是作为 <strong>“中间代理层”</strong>：</p>
+<ul>
+<li>收集所有需要布局重建的元素</li>
+<li>在 <code>PerformUpdate</code> 的布局阶段，统一按正确的顺序执行计算</li>
+<li>避免每个 <code>Layout</code> 组件各自独立触发重建，造成重复计算和性能浪费</li>
+</ul>
+<hr>
+<h1 id="三、对象池机制"><a href="#三、对象池机制" class="headerlink" title="三、对象池机制"></a>三、对象池机制</h1><p><code>LayoutRebuilder</code> 没有像 <code>Graphic</code> 那样直接依附在 GameObject 上。它本身只是一个逻辑对象，通过 <strong>对象池</strong> 复用，以避免频繁创建和销毁造成的 GC 压力。</p>
+<p>具体实现如下：</p>
+<ul>
+<li><code>LayoutRebuilder</code> 维护了一个静态的 <code>ObjectPool&lt;LayoutRebuilder&gt;</code> 对象池。</li>
+<li>当需要触发布局重建时，通过 <code>Get()</code> 从池中获取一个实例，并用目标 <code>RectTransform</code> 初始化。</li>
+<li>在完成重建后，通过 <code>Release()</code> 将实例释放回池中。</li>
+</ul>
+<p><strong>与 <code>Graphic</code> 的区别</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>实例管理方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Graphic</code></td>
+<td>直接挂载在 GameObject 上，随对象生命周期存在</td>
+</tr>
+<tr>
+<td><code>LayoutRebuilder</code></td>
+<td>从对象池获取，使用完释放回池，不长期持有</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="四、两种触发方式"><a href="#四、两种触发方式" class="headerlink" title="四、两种触发方式"></a>四、两种触发方式</h1><h4 id="1-MarkLayoutForRebuild（异步，推荐）"><a href="#1-MarkLayoutForRebuild（异步，推荐）" class="headerlink" title="1. MarkLayoutForRebuild（异步，推荐）"></a>1. MarkLayoutForRebuild（异步，推荐）</h4><blockquote>
+<p>这是常规的触发方式。当布局组件检测到自身或其子元素发生变化时，调用此方法，将自身注册到 <code>CanvasUpdateRegistry</code> 的待布局重建队列中，由引擎在每帧末尾的 <code>PerformUpdate</code> 中统一处理。</p>
+</blockquote>
+<p>调用链为：</p>
+<ul>
+<li>布局组件调用 <code>LayoutRebuilder.MarkLayoutForRebuild(rectTransform)</code></li>
+<li><code>MarkLayoutForRebuild</code> 内部获取一个 <code>LayoutRebuilder</code> 实例，并以 <code>rectTransform</code> 为目标进行初始化</li>
+<li>调用 <code>CanvasUpdateRegistry.TryRegisterCanvasElementForLayoutRebuild(builder)</code>，将实例添加到 <code>m_LayoutRebuildQueue</code> 中</li>
+<li><code>PerformUpdate</code> 的布局阶段，遍历队列，调用每个 <code>LayoutRebuilder</code> 的 <code>Rebuild</code> 方法</li>
+<li><code>LayoutRebuilder</code> 实例最终在 <code>LayoutComplete</code> 中回收</li>
+</ul>
+<h4 id="2-ForceRebuildLayoutImmediate（同步，谨慎使用）"><a href="#2-ForceRebuildLayoutImmediate（同步，谨慎使用）" class="headerlink" title="2. ForceRebuildLayoutImmediate（同步，谨慎使用）"></a>2. ForceRebuildLayoutImmediate（同步，谨慎使用）</h4><blockquote>
+<p>此方法会 <strong>立即同步执行</strong> 布局重建，不依赖 <code>willRenderCanvases</code> 事件。</p>
+</blockquote>
+<p>调用链为：</p>
+<ul>
+<li>调用 <code>LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform)</code></li>
+<li>从对象池获取 <code>LayoutRebuilder</code> 实例，调用其 <code>Rebuild</code> 方法</li>
+<li>重建完成后立即释放</li>
+</ul>
+<p><strong>适用场景</strong>：需要在同一帧内立即获取布局后的尺寸（如在 <code>Start</code> 中计算子元素的最终位置）。</p>
+<p><strong>注意事项</strong>：这是一个 <strong>重量级操作</strong>，会递归计算所有子元素的尺寸，频繁调用会导致明显的性能下降。</p>
+<hr>
+<h1 id="五、Rebuild-方法的执行流程"><a href="#五、Rebuild-方法的执行流程" class="headerlink" title="五、Rebuild 方法的执行流程"></a>五、Rebuild 方法的执行流程</h1><p><code>Rebuild</code> 是 <code>LayoutRebuilder</code> 最核心的方法，它在 <code>PerformUpdate</code> 的布局阶段被调用，并按 <code>CanvasUpdate</code> 枚举的阶段顺序执行：</p>
+<h4 id="阶段一：水平方向计算（自下而上）"><a href="#阶段一：水平方向计算（自下而上）" class="headerlink" title="阶段一：水平方向计算（自下而上）"></a>阶段一：水平方向计算（自下而上）</h4><ul>
+<li>调用 <code>ILayoutElement.CalculateLayoutInputHorizontal()</code></li>
+<li>从 <strong>最深的子节点</strong> 开始，逐级向上计算每个元素的 <code>minWidth</code>、<code>preferredWidth</code>、<code>flexibleWidth</code> 等水平尺寸数据</li>
+<li>父节点依赖子节点提供的尺寸数据来计算自身尺寸</li>
+</ul>
+<p><strong>为什么水平先于垂直？</strong></p>
+<p>这是一个代码设计层面的约定：</p>
+<ul>
+<li>水平计算过程中，不允许依赖 <code>RectTransform</code> 的尺寸属性（如宽度、位置），只计算并缓存数值结果。</li>
+<li>垂直计算过程中，可以依赖水平计算的结果。例如，一个 <code>Text</code> 组件可以在水平宽度确定后，再根据该宽度计算垂直方向上的高度。</li>
+</ul>
+<p>这种设计确保了计算过程是 <strong>确定且无环的</strong>。</p>
+<h4 id="阶段二：水平方向控制（自上而下）"><a href="#阶段二：水平方向控制（自上而下）" class="headerlink" title="阶段二：水平方向控制（自上而下）"></a>阶段二：水平方向控制（自上而下）</h4><ul>
+<li>调用 <code>ILayoutController.SetLayoutHorizontal()</code></li>
+<li>从 <strong>父节点</strong> 开始，逐级向下，根据之前计算得到的尺寸数据，修改每个元素的 <code>RectTransform</code> 的宽度和位置</li>
+</ul>
+<h4 id="阶段三：垂直方向计算（自下而上）"><a href="#阶段三：垂直方向计算（自下而上）" class="headerlink" title="阶段三：垂直方向计算（自下而上）"></a>阶段三：垂直方向计算（自下而上）</h4><ul>
+<li>调用 <code>ILayoutElement.CalculateLayoutInputVertical()</code></li>
+<li>从最深的子节点开始，逐级向上计算每个元素的 <code>minHeight</code>、<code>preferredHeight</code>、<code>flexibleHeight</code> 等垂直尺寸数据</li>
+<li>此时可以依赖水平计算阶段缓存的宽度数据</li>
+</ul>
+<h4 id="阶段四：垂直方向控制（自上而下）"><a href="#阶段四：垂直方向控制（自上而下）" class="headerlink" title="阶段四：垂直方向控制（自上而下）"></a>阶段四：垂直方向控制（自上而下）</h4><ul>
+<li>调用 <code>ILayoutController.SetLayoutVertical()</code></li>
+<li>从父节点开始，逐级向下，根据之前计算得到的尺寸数据，修改每个元素的 <code>RectTransform</code> 的高度和位置</li>
+</ul>
+<p><strong>关键点</strong>：</p>
+<ul>
+<li>计算阶段只读取数据、只缓存结果，<strong>不修改</strong> <code>RectTransform</code></li>
+<li>控制阶段才真正应用尺寸和位置修改</li>
+</ul>
+<hr>
+<h1 id="六、布局计算的“自下而上”和“自上而下”"><a href="#六、布局计算的“自下而上”和“自上而下”" class="headerlink" title="六、布局计算的“自下而上”和“自上而下”"></a>六、布局计算的“自下而上”和“自上而下”</h1><p>之前在学习 <code>CanvasUpdateRegistry</code> 时已经了解：布局重建必须按层级深度从深到浅排序。这正是因为布局计算遵循以下依赖链：</p>
+<ol>
+<li><strong>子节点 → 父节点</strong>（计算阶段）：父节点的 <code>preferredWidth</code> 取决于所有子节点的总宽度，因此必须先计算子节点，再计算父节点。</li>
+<li><strong>父节点 → 子节点</strong>（控制阶段）：子节点的最终位置取决于父节点的尺寸和布局排列规则，因此必须先设置父节点，再设置子节点。</li>
+</ol>
+<p><code>LayoutRebuilder</code> 的 <code>Rebuild</code> 流程完美地遵循了这两条依赖链。</p>
+<hr>
+<h1 id="七、与-CanvasUpdateRegistry-的协作细节"><a href="#七、与-CanvasUpdateRegistry-的协作细节" class="headerlink" title="七、与 CanvasUpdateRegistry 的协作细节"></a>七、与 CanvasUpdateRegistry 的协作细节</h1><p>在 <code>CanvasUpdateRegistry</code> 中，有一类方法叫 <code>TryRegisterCanvasElementForLayoutRebuild</code>，其返回值是一个 <code>bool</code>。在 <code>LayoutRebuilder</code> 中的使用逻辑如下：</p>
+<ul>
+<li>当 <code>LayoutRebuilder</code> 实例调用 <code>TryRegisterCanvasElementForLayoutRebuild</code> 时，如果该实例尚未在队列中，则返回 <code>true</code>，表示注册成功。</li>
+<li>如果该实例 <strong>已经存在于队列中</strong>（即同一元素在同一帧内被多次标记为脏），则返回 <code>false</code>。</li>
+<li>当返回 <code>false</code> 时，说明本次注册是“重复的”，<code>LayoutRebuilder</code> 会将刚新建的实例 <strong>释放回对象池</strong>。</li>
+</ul>
+<p>这个细节说明了之前看到的 <code>IndexedSet</code> 去重机制在这里是有效的。</p>
+<hr>
+<h1 id="八、与-Graphic、CanvasUpdateRegistry-的关系"><a href="#八、与-Graphic、CanvasUpdateRegistry-的关系" class="headerlink" title="八、与 Graphic、CanvasUpdateRegistry 的关系"></a>八、与 Graphic、CanvasUpdateRegistry 的关系</h1><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>职责</th>
+<th>是否参与深度排序</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Graphic</code></td>
+<td>生成网格数据，标记脏状态</td>
+<td>否（图形重建不排序）</td>
+</tr>
+<tr>
+<td><code>LayoutRebuilder</code></td>
+<td>执行布局计算，控制尺寸和位置</td>
+<td>是（布局必须自下而上）</td>
+</tr>
+<tr>
+<td><code>CanvasUpdateRegistry</code></td>
+<td>收集脏元素，调度重建顺序</td>
+<td>——</td>
+</tr>
+</tbody></table>
+<p><code>LayoutRebuilder</code> 的布局计算为 <code>Graphic</code> 的网格生成提供了 <strong>正确的尺寸和位置数据</strong>，而 <code>CanvasUpdateRegistry</code> 则确保了两者在正确的顺序下执行。</p>
+<hr>
+<h1 id="九、优化启示"><a href="#九、优化启示" class="headerlink" title="九、优化启示"></a>九、优化启示</h1><p>基于对 <code>LayoutRebuilder</code> 的理解，可以进一步明确以下优化策略：</p>
+<h4 id="1-减少不必要的布局重建"><a href="#1-减少不必要的布局重建" class="headerlink" title="1. 减少不必要的布局重建"></a>1. 减少不必要的布局重建</h4><ul>
+<li>避免在 <code>Update</code> 中频繁修改会触发 <code>SetLayoutDirty</code> 的属性（如 <code>RectTransform.sizeDelta</code>、<code>Text.text</code> 等）</li>
+<li>批量修改时，先将父节点 <code>SetActive(false)</code>，完成修改后再激活，将多次脏标记合并为一次重建</li>
+</ul>
+<h4 id="2-理解-ForceRebuildLayoutImmediate-的代价"><a href="#2-理解-ForceRebuildLayoutImmediate-的代价" class="headerlink" title="2. 理解 ForceRebuildLayoutImmediate 的代价"></a>2. 理解 ForceRebuildLayoutImmediate 的代价</h4><ul>
+<li><code>ForceRebuildLayoutImmediate</code> 会同步执行完整的布局计算（水平计算 + 水平控制 + 垂直计算 + 垂直控制），递归遍历所有子节点</li>
+<li>在 <code>Update</code> 或循环中频繁调用会导致明显的性能下降</li>
+<li>仅当需要在同帧内立即获取布局后的尺寸时才使用</li>
+</ul>
+<h4 id="3-布局嵌套层数的影响"><a href="#3-布局嵌套层数的影响" class="headerlink" title="3. 布局嵌套层数的影响"></a>3. 布局嵌套层数的影响</h4><ul>
+<li>布局重建时需要对 <code>m_LayoutRebuildQueue</code> 进行排序（按层级深度），嵌套越深，排序开销越大</li>
+<li>应尽量减少 <code>LayoutGroup</code> 的嵌套层数，或将嵌套布局拆分为多个独立的 Canvas</li>
+</ul>
+<h4 id="4-对象池规避-GC"><a href="#4-对象池规避-GC" class="headerlink" title="4. 对象池规避 GC"></a>4. 对象池规避 GC</h4><ul>
+<li><code>LayoutRebuilder</code> 使用对象池复用实例，避免了频繁创建对象产生的 GC Alloc</li>
+<li>在日常开发中，可参考这种设计模式，在需要频繁创建临时对象的场景下使用对象池</li>
+</ul>
+<hr>
+<h1 id="十、总结"><a href="#十、总结" class="headerlink" title="十、总结"></a>十、总结</h1><table>
+<thead>
+<tr>
+<th>核心概念</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>角色</td>
+<td>UGUI 布局系统的执行器，负责计算和控制布局</td>
+</tr>
+<tr>
+<td>触发方式</td>
+<td><code>MarkLayoutForRebuild</code>（异步） &#x2F; <code>ForceRebuildLayoutImmediate</code>（同步）</td>
+</tr>
+<tr>
+<td>对象池</td>
+<td>复用 <code>LayoutRebuilder</code> 实例，避免 GC 压力</td>
+</tr>
+<tr>
+<td>执行顺序</td>
+<td>水平计算 → 水平控制 → 垂直计算 → 垂直控制</td>
+</tr>
+<tr>
+<td>计算方向</td>
+<td>自下而上（子节点 → 父节点）</td>
+</tr>
+<tr>
+<td>控制方向</td>
+<td>自上而下（父节点 → 子节点）</td>
+</tr>
+<tr>
+<td>与 Registry 协作</td>
+<td>注册到 <code>m_LayoutRebuildQueue</code>，参与统一调度；重复注册时释放实例回池</td>
+</tr>
+<tr>
+<td>优化方向</td>
+<td>减少嵌套层级 &#x2F; 批量修改时使用 SetActive(false) 包裹 &#x2F; 避免频繁调用 ForceRebuildLayoutImmediate</td>
+</tr>
+</tbody></table>
+<hr>
+<blockquote>
+<p>📝 <strong>写在最后</strong><br><code>LayoutRebuilder</code> 是 UGUI 布局系统的核心执行器，也是之前学习的 <code>Graphic</code> 和 <code>CanvasUpdateRegistry</code> 之间的关键纽带。<br>理解它的计算顺序和控制逻辑，才能从根本上理解为什么布局操作会带来性能开销，以及如何在实际项目中写出高效的 UI 代码。<br>至此，UGUI 的渲染调度链路基本完整：<strong>脏标记 → 调度中心 → 布局执行 → 图形重建 → 合批渲染</strong>。</p>
+</blockquote>
+<hr>
+<p><strong>📌 相关阅读</strong>  </p>
+<ul>
+<li><a href="https://avvywenna.github.io/2026/07/01/Graphic/">UGUI 源码剖析 —— Graphic 核心机制</a>  </li>
+<li><a href="https://avvywenna.github.io/2026/07/02/CanvasUpdateRegistry/">UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心</a></li>
+</ul>
+<hr>
+<p><em>本文为个人学习总结，如有不准确之处，欢迎指正交流。</em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io">Avywenna</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io/2026/07/03/LayoutRebuilders/">https://avvywenna.github.io/2026/07/03/LayoutRebuilders/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/UGUI/">UGUI</a><a class="post-meta__tags" href="/tags/LayoutRebuilder/">LayoutRebuilder</a></div><div class="post-share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/07/04/ClipperRegistry/" title="UGUI 源码剖析 —— ClipperRegistry 与 RectMask2D"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">UGUI 源码剖析 —— ClipperRegistry 与 RectMask2D</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 ClipperRegistry 的裁剪调度机制与 RectMask2D 实现原理</div></div></div></a><a class="pagination-related" href="/2026/07/02/UGUI%20Batches/" title="Unity UGUI 合批机制深度解析"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">Unity UGUI 合批机制深度解析</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 的合批原理、深度计算机制与实用优化策略</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/07/06/SoftMaskForUGUI/" title="SoftMaskForUGUI 源码分析与实现原理"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-06</div><div class="info-item-2">SoftMaskForUGUI 源码分析与实现原理</div></div><div class="info-2"><div class="info-item-1">深入分析 SoftMaskForUGUI 插件的离屏渲染与软遮罩实现原理</div></div></div></a><a class="pagination-related" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-15</div><div class="info-item-2">UGUI 源码剖析 —— Selectable 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Selectable 基类的交互状态管理与导航机制</div></div></div></a><a class="pagination-related" href="/2026/07/01/Graphic/" title="UGUI 源码剖析 —— Graphic 核心机制"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-01</div><div class="info-item-2">UGUI 源码剖析 —— Graphic 核心机制</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Graphic 类的底层原理与性能优化要点</div></div></div></a><a class="pagination-related" href="/2026/07/14/RawImage/" title="UGUI 源码剖析 —— RawImage 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-14</div><div class="info-item-2">UGUI 源码剖析 —— RawImage 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 RawImage 组件的设计定位与实现细节</div></div></div></a><a class="pagination-related" href="/2026/07/02/UGUI%20Batches/" title="Unity UGUI 合批机制深度解析"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-02</div><div class="info-item-2">Unity UGUI 合批机制深度解析</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 的合批原理、深度计算机制与实用优化策略</div></div></div></a><a class="pagination-related" href="/2026/07/13/Image/" title="UGUI 源码剖析 —— Image 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-13</div><div class="info-item-2">UGUI 源码剖析 —— Image 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Image 组件的渲染机制与网格生成逻辑</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/icon.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Avywenna</div><div class="author-info-description">転がる岩、君に朝が降る</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">17</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Avvywenna"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Avvywenna" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="https://space.bilibili.com/237232911" target="_blank" title="BiliBili"><i class="fab fa-bilibili" style="color: #fb7299;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">hi~ 是迷路的小猫咪吗</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%80%E3%80%81LayoutRebuilder-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">1.</span> <span class="toc-text">一、LayoutRebuilder 是什么？</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81-LayoutRebuilder%EF%BC%9F"><span class="toc-number">2.</span> <span class="toc-text">二、为什么需要 LayoutRebuilder？</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E5%AF%B9%E8%B1%A1%E6%B1%A0%E6%9C%BA%E5%88%B6"><span class="toc-number">3.</span> <span class="toc-text">三、对象池机制</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E4%B8%A4%E7%A7%8D%E8%A7%A6%E5%8F%91%E6%96%B9%E5%BC%8F"><span class="toc-number">4.</span> <span class="toc-text">四、两种触发方式</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-MarkLayoutForRebuild%EF%BC%88%E5%BC%82%E6%AD%A5%EF%BC%8C%E6%8E%A8%E8%8D%90%EF%BC%89"><span class="toc-number">4.1.</span> <span class="toc-text">1. MarkLayoutForRebuild（异步，推荐）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-ForceRebuildLayoutImmediate%EF%BC%88%E5%90%8C%E6%AD%A5%EF%BC%8C%E8%B0%A8%E6%85%8E%E4%BD%BF%E7%94%A8%EF%BC%89"><span class="toc-number">4.2.</span> <span class="toc-text">2. ForceRebuildLayoutImmediate（同步，谨慎使用）</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%94%E3%80%81Rebuild-%E6%96%B9%E6%B3%95%E7%9A%84%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B"><span class="toc-number">5.</span> <span class="toc-text">五、Rebuild 方法的执行流程</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%80%EF%BC%9A%E6%B0%B4%E5%B9%B3%E6%96%B9%E5%90%91%E8%AE%A1%E7%AE%97%EF%BC%88%E8%87%AA%E4%B8%8B%E8%80%8C%E4%B8%8A%EF%BC%89"><span class="toc-number">5.1.</span> <span class="toc-text">阶段一：水平方向计算（自下而上）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%BA%8C%EF%BC%9A%E6%B0%B4%E5%B9%B3%E6%96%B9%E5%90%91%E6%8E%A7%E5%88%B6%EF%BC%88%E8%87%AA%E4%B8%8A%E8%80%8C%E4%B8%8B%EF%BC%89"><span class="toc-number">5.2.</span> <span class="toc-text">阶段二：水平方向控制（自上而下）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%89%EF%BC%9A%E5%9E%82%E7%9B%B4%E6%96%B9%E5%90%91%E8%AE%A1%E7%AE%97%EF%BC%88%E8%87%AA%E4%B8%8B%E8%80%8C%E4%B8%8A%EF%BC%89"><span class="toc-number">5.3.</span> <span class="toc-text">阶段三：垂直方向计算（自下而上）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E5%9B%9B%EF%BC%9A%E5%9E%82%E7%9B%B4%E6%96%B9%E5%90%91%E6%8E%A7%E5%88%B6%EF%BC%88%E8%87%AA%E4%B8%8A%E8%80%8C%E4%B8%8B%EF%BC%89"><span class="toc-number">5.4.</span> <span class="toc-text">阶段四：垂直方向控制（自上而下）</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E5%B8%83%E5%B1%80%E8%AE%A1%E7%AE%97%E7%9A%84%E2%80%9C%E8%87%AA%E4%B8%8B%E8%80%8C%E4%B8%8A%E2%80%9D%E5%92%8C%E2%80%9C%E8%87%AA%E4%B8%8A%E8%80%8C%E4%B8%8B%E2%80%9D"><span class="toc-number">6.</span> <span class="toc-text">六、布局计算的“自下而上”和“自上而下”</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E4%B8%8E-CanvasUpdateRegistry-%E7%9A%84%E5%8D%8F%E4%BD%9C%E7%BB%86%E8%8A%82"><span class="toc-number">7.</span> <span class="toc-text">七、与 CanvasUpdateRegistry 的协作细节</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%AB%E3%80%81%E4%B8%8E-Graphic%E3%80%81CanvasUpdateRegistry-%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">8.</span> <span class="toc-text">八、与 Graphic、CanvasUpdateRegistry 的关系</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E4%BC%98%E5%8C%96%E5%90%AF%E7%A4%BA"><span class="toc-number">9.</span> <span class="toc-text">九、优化启示</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E5%87%8F%E5%B0%91%E4%B8%8D%E5%BF%85%E8%A6%81%E7%9A%84%E5%B8%83%E5%B1%80%E9%87%8D%E5%BB%BA"><span class="toc-number">9.1.</span> <span class="toc-text">1. 减少不必要的布局重建</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E7%90%86%E8%A7%A3-ForceRebuildLayoutImmediate-%E7%9A%84%E4%BB%A3%E4%BB%B7"><span class="toc-number">9.2.</span> <span class="toc-text">2. 理解 ForceRebuildLayoutImmediate 的代价</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E5%B8%83%E5%B1%80%E5%B5%8C%E5%A5%97%E5%B1%82%E6%95%B0%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="toc-number">9.3.</span> <span class="toc-text">3. 布局嵌套层数的影响</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-%E5%AF%B9%E8%B1%A1%E6%B1%A0%E8%A7%84%E9%81%BF-GC"><span class="toc-number">9.4.</span> <span class="toc-text">4. 对象池规避 GC</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8D%81%E3%80%81%E6%80%BB%E7%BB%93"><span class="toc-number">10.</span> <span class="toc-text">十、总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GitHub图床搭建"/></a><div class="content"><a class="title" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建">GitHub图床搭建</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于Hexo + GitHub Page的博客搭建碎碎念"/></a><div class="content"><a class="title" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念">基于Hexo + GitHub Page的博客搭建碎碎念</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++ Learning [持续更新中]"/></a><div class="content"><a class="title" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]">C++ Learning [持续更新中]</a><time datetime="2026-07-17T10:36:27.715Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— ScrollRect 组件"/></a><div class="content"><a class="title" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件">UGUI 源码剖析 —— ScrollRect 组件</a><time datetime="2026-07-17T00:00:00.000Z" title="Created 2026-07-17 00:00:00">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— Selectable 组件"/></a><div class="content"><a class="title" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件">UGUI 源码剖析 —— Selectable 组件</a><time datetime="2026-07-15T00:00:00.000Z" title="Created 2026-07-15 00:00:00">2026-07-15</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Avywenna</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><div class="js-pjax"></div><div class="aplayer no-destroy" data-id="17791700195" data-server="netease" data-type="playlist" data-fixed="true" data-autoplay="true"> </div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      false
+        ? pjax.loadUrl('/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

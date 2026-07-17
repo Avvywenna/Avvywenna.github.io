@@ -1,0 +1,369 @@
+<!DOCTYPE html><html lang="zh" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>UGUI 源码剖析 —— Graphic 核心机制 | Welcome</title><meta name="author" content="Avywenna"><meta name="copyright" content="Avywenna"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta name="description" content="深入理解 UGUI 中 Graphic 类的底层原理与性能优化要点">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UGUI 源码剖析 —— Graphic 核心机制">
+<meta property="og:url" content="https://avvywenna.github.io/2026/07/01/Graphic/index.html">
+<meta property="og:site_name" content="Welcome">
+<meta property="og:description" content="深入理解 UGUI 中 Graphic 类的底层原理与性能优化要点">
+<meta property="og:locale">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg">
+<meta property="article:published_time" content="2026-07-01T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-15T06:37:58.000Z">
+<meta property="article:author" content="Avywenna">
+<meta property="article:tag" content="Graphic">
+<meta property="article:tag" content="UGUI">
+<meta property="article:tag" content="Unity">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "UGUI 源码剖析 —— Graphic 核心机制",
+  "url": "https://avvywenna.github.io/2026/07/01/Graphic/",
+  "image": "https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg",
+  "datePublished": "2026-07-01T00:00:00.000Z",
+  "dateModified": "2026-07-15T06:37:58.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Avywenna",
+      "url": "https://avvywenna.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/"><link rel="canonical" href="https://avvywenna.github.io/2026/07/01/Graphic/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'UGUI 源码剖析 —— Graphic 核心机制',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.1"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Welcome</span></a><a class="nav-page-title" href="/"><span class="site-name">UGUI 源码剖析 —— Graphic 核心机制</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">UGUI 源码剖析 —— Graphic 核心机制</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-07-01T00:00:00.000Z" title="Created 2026-07-01 00:00:00">2026-07-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-07-15T06:37:58.000Z" title="Updated 2026-07-15 06:37:58">2026-07-15</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/">Unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/UGUI/">UGUI</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="一、Graphic-是什么？"><a href="#一、Graphic-是什么？" class="headerlink" title="一、Graphic 是什么？"></a>一、Graphic 是什么？</h1><p>在 UGUI 中，<strong><code>Graphic</code></strong> 是所有可渲染 UI 元素的<strong>基类</strong>。<br>我们常用的 <code>Image</code>、<code>Text</code>、<code>RawImage</code> 本质上都是一个 <strong>Graphic</strong>。</p>
+<p>作为“图形”，它必须具备三个核心要素：</p>
+<ul>
+<li><strong>颜色（Color）</strong>  </li>
+<li><strong>形状（Mesh &#x2F; 网格）</strong>  </li>
+<li><strong>表面细节（Material）</strong></li>
+</ul>
+<p>同时，<code>Graphic</code> 还承担了<strong>可交互</strong>（如射线检测）和<strong>布局容器</strong>（可嵌套子 <code>Graphic</code>）的能力。</p>
+<p>渲染一个 <code>Graphic</code> 时，引擎会根据其颜色、材质和网格数据，将其绘制到 Canvas 上；若包含子 <code>Graphic</code>，则会递归处理。</p>
+<hr>
+<h1 id="二、脏标记（Dirty）与重建（Rebuild）机制"><a href="#二、脏标记（Dirty）与重建（Rebuild）机制" class="headerlink" title="二、脏标记（Dirty）与重建（Rebuild）机制"></a>二、脏标记（Dirty）与重建（Rebuild）机制</h1><p>当 <code>Graphic</code> 的上述属性发生变化时，并不会立即重新生成网格，而是通过 <strong>“脏标记”</strong> 来通知系统需要更新。</p>
+<p>UGUI 定义了三种脏标记类型：</p>
+<table>
+<thead>
+<tr>
+<th>触发条件</th>
+<th>对应方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>颜色、网格、尺寸变化</td>
+<td><code>SetVerticesDirty()</code></td>
+<td>顶点数据需要重建</td>
+</tr>
+<tr>
+<td>材质变化</td>
+<td><code>SetMaterialDirty()</code></td>
+<td>材质需要更新</td>
+</tr>
+<tr>
+<td>布局变化（含子元素）</td>
+<td><code>SetLayoutDirty()</code></td>
+<td>布局需要重新计算</td>
+</tr>
+</tbody></table>
+<p>这些方法被调用后，<code>Graphic</code> 会被添加到 <code>CanvasUpdateRegistry</code> 的 <strong>待更新队列</strong> 中，而<strong>不会立刻执行重建</strong>。</p>
+<blockquote>
+<p>📌 <strong>去重优化</strong>：<code>CanvasUpdateRegistry</code> 内部使用 <code>IndexedSet</code>（有序无重复集合）来存储待更新元素。<br>因此同一帧内对同一个 <code>Graphic</code> 多次调用 <code>SetVerticesDirty</code>，最终只会被重建 <strong>一次</strong>。</p>
+</blockquote>
+<hr>
+<h1 id="三、重建的触发时机"><a href="#三、重建的触发时机" class="headerlink" title="三、重建的触发时机"></a>三、重建的触发时机</h1><p>所有 UI 重建都集中发生在 <strong>每帧的末尾</strong>，具体调用链如下：</p>
+<ol>
+<li>Unity 引擎在 <strong><code>LateUpdate</code></strong> 之后，调用底层 Native 方法 <code>SendWillRenderCanvases</code>。</li>
+<li>该方法会触发 C# 层的 <code>Canvas.willRenderCanvases</code> 事件。</li>
+<li><code>CanvasUpdateRegistry</code> 监听了该事件，并在事件处理中执行 <code>PerformUpdate()</code> 方法。</li>
+</ol>
+<blockquote>
+<p>💡 <strong>强制刷新</strong>：也可以通过 <code>Canvas.ForceUpdateCanvases()</code> <strong>同步</strong> 触发 <code>PerformUpdate</code>，这通常用于需要在代码中立即获取新布局尺寸的场景，但应谨慎使用，因为会立即产生 CPU 峰值。</p>
+</blockquote>
+<hr>
+<h1 id="四、PerformUpdate-的执行顺序"><a href="#四、PerformUpdate-的执行顺序" class="headerlink" title="四、PerformUpdate 的执行顺序"></a>四、PerformUpdate 的执行顺序</h1><p><code>PerformUpdate</code> 内部严格按照以下阶段进行（通过 <code>CanvasUpdate</code> 枚举控制步骤，实现解耦）：</p>
+<ol>
+<li><strong>CleanInvalidItems</strong> —— 移除已销毁或无效的元素</li>
+<li><strong>Layout Rebuild</strong> —— 重新计算布局</li>
+<li><strong>Clipping Updates</strong> —— 遮罩裁剪更新</li>
+<li><strong>Vertex Rebuild</strong> —— 顶点网格重建</li>
+</ol>
+<p><strong>关键点</strong>：<strong>布局更新（Layout）永远先于顶点更新（Vertex）</strong>。<br>这意味着如果你在布局更新阶段改变了某个 <code>Graphic</code> 的尺寸，该变化会在<strong>同一帧的顶点更新阶段</strong>立即生效，而不会延迟到下一帧。</p>
+<hr>
+<h1 id="五、优化启示"><a href="#五、优化启示" class="headerlink" title="五、优化启示"></a>五、优化启示</h1><p>由于所有脏 UI 会在同一帧末尾集中处理，这可能导致 CPU 峰值，进而引起掉帧。针对这一点，我们可以采取以下优化策略：</p>
+<h4 id="1-分帧处理大量-UI-更新"><a href="#1-分帧处理大量-UI-更新" class="headerlink" title="1. 分帧处理大量 UI 更新"></a>1. 分帧处理大量 UI 更新</h4><p>对于像背包、滚动列表这样包含大量元素的 UI，避免一次性激活或修改所有子项，而是<strong>将操作分散到多帧</strong>中执行，让每帧只重建一部分。</p>
+<h4 id="2-减少脏标记的产生"><a href="#2-减少脏标记的产生" class="headerlink" title="2. 减少脏标记的产生"></a>2. 减少脏标记的产生</h4><ul>
+<li>使用 <code>MaterialPropertyBlock</code> 来修改颜色，避免触发 <code>SetVerticesDirty</code>。</li>
+<li>避免在 <code>Update()</code> 中频繁修改 <code>Text.text</code> 或 <code>Image.color</code> 等属性。</li>
+<li>虽然 <code>Graphic</code> 内部会做值相等性校验（相同值不会真正脏），但校验本身也有开销。在上层业务逻辑中，主动进行 <strong>id 或数值判断</strong>，提前拦截不必要的赋值，是更高效的实践。</li>
+</ul>
+<h4 id="3-控制布局递归"><a href="#3-控制布局递归" class="headerlink" title="3. 控制布局递归"></a>3. 控制布局递归</h4><p>在动态增删列表项时，可以先<strong>将父节点 <code>SetActive(false)</code></strong>，完成所有添加后再激活。这样可以将原本分散在两帧（布局→顶点）的重建合并到一次 <code>PerformUpdate</code> 中处理，减少整体耗时。</p>
+<hr>
+<h1 id="六、Graphic-的生命周期钩子"><a href="#六、Graphic-的生命周期钩子" class="headerlink" title="六、Graphic 的生命周期钩子"></a>六、Graphic 的生命周期钩子</h1><h4 id="OnEnable"><a href="#OnEnable" class="headerlink" title="OnEnable()"></a><code>OnEnable()</code></h4><p>当 <code>Graphic</code> 被激活时，它会：</p>
+<ul>
+<li>将自己注册到 <code>CanvasUpdateRegistry</code></li>
+<li>与当前 <code>Canvas</code> 建立关联</li>
+<li>调用 <code>SetAllDirty()</code>，<strong>触发首次渲染</strong></li>
+</ul>
+<h4 id="DoMeshGeneration"><a href="#DoMeshGeneration" class="headerlink" title="DoMeshGeneration()"></a><code>DoMeshGeneration()</code></h4><p>这是实际执行网格重建的方法，流程为：</p>
+<blockquote>
+<p>OnPopulateMesh() —— 由子类重写，填充顶点、UV、颜色等数据<br>⬇<br>IMeshModifier 接口 —— 可对顶点数据进行二次修改（如变形、特效）<br>⬇<br>canvasRenderer.SetMesh(workerMesh) —— 将最终网格提交给渲染器</p>
+</blockquote>
+<hr>
+<h1 id="七、扩展能力"><a href="#七、扩展能力" class="headerlink" title="七、扩展能力"></a>七、扩展能力</h1><ul>
+<li><strong><code>OnPopulateMesh</code></strong>：自定义 UI 组件可重写此方法，手工构建网格数据，实现任意形状绘制。</li>
+<li><strong><code>IMeshModifier</code></strong>：实现该接口，可以在网格已经生成后对其进行再加工，常用于实现扭曲、渐变、水波纹等视觉效果。</li>
+</ul>
+<hr>
+<h1 id="八、总结"><a href="#八、总结" class="headerlink" title="八、总结"></a>八、总结</h1><table>
+<thead>
+<tr>
+<th>核心概念</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>基类</td>
+<td><code>Graphic</code> 是所有 UGUI 可渲染元素的基类</td>
+</tr>
+<tr>
+<td>脏标记</td>
+<td><code>SetVerticesDirty</code> &#x2F; <code>SetMaterialDirty</code> &#x2F; <code>SetLayoutDirty</code></td>
+</tr>
+<tr>
+<td>去重</td>
+<td><code>IndexedSet</code> 保证同一帧内单元素只重建一次</td>
+</tr>
+<tr>
+<td>触发时机</td>
+<td><code>LateUpdate</code> 后 → <code>SendWillRenderCanvases</code> → <code>willRenderCanvases</code> 事件</td>
+</tr>
+<tr>
+<td>执行顺序</td>
+<td>布局 → 裁剪 → 顶点</td>
+</tr>
+<tr>
+<td>优化方向</td>
+<td>分帧更新、减少脏标记、控制布局递归</td>
+</tr>
+<tr>
+<td>扩展方式</td>
+<td>重写 <code>OnPopulateMesh</code> 或实现 <code>IMeshModifier</code></td>
+</tr>
+</tbody></table>
+<hr>
+<blockquote>
+<p>📝 <strong>写在最后</strong><br>理解 <code>Graphic</code> 及其背后的重建机制，是掌握 UGUI 性能优化的基石。<br>无论是日常开发还是面试深挖，这份源码分析都能为你提供清晰的底层依据。  </p>
+</blockquote>
+<hr>
+<p><strong>📌 相关阅读</strong>  </p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/Unity-Technologies/uGUI">Unity UGUI 源码仓库（官方）</a>  </li>
+<li><a target="_blank" rel="noopener" href="https://docs.unity3d.com/Manual/UI-Overview.html">Canvas 与渲染性能调优</a>  </li>
+<li><a target="_blank" rel="noopener" href="https://learn.unity.com/tutorial/uGUI-Performance-Optimization">UGUI 性能优化最佳实践</a></li>
+</ul>
+<hr>
+<p><em>本文为个人学习总结，如有不准确之处，欢迎指正交流。</em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io">Avywenna</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io/2026/07/01/Graphic/">https://avvywenna.github.io/2026/07/01/Graphic/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/UGUI/">UGUI</a><a class="post-meta__tags" href="/tags/Graphic/">Graphic</a></div><div class="post-share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/07/02/CanvasUpdateRegistry/" title="UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 CanvasUpdateRegistry 的调度机制与源码细节</div></div></div></a><a class="pagination-related" href="/2026/05/09/Unity%20Note+/" title="Unity 游戏开发常识补完"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">Unity 游戏开发常识补完</div></div><div class="info-2"><div class="info-item-1">常识系查缺补漏</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/07/13/Image/" title="UGUI 源码剖析 —— Image 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-13</div><div class="info-item-2">UGUI 源码剖析 —— Image 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Image 组件的渲染机制与网格生成逻辑</div></div></div></a><a class="pagination-related" href="/2026/07/02/CanvasUpdateRegistry/" title="UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-02</div><div class="info-item-2">UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 CanvasUpdateRegistry 的调度机制与源码细节</div></div></div></a><a class="pagination-related" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-15</div><div class="info-item-2">UGUI 源码剖析 —— Selectable 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Selectable 基类的交互状态管理与导航机制</div></div></div></a><a class="pagination-related" href="/2026/07/10/StandaloneInputModule/" title="UGUI 源码剖析 —— StandaloneInputModule"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-10</div><div class="info-item-2">UGUI 源码剖析 —— StandaloneInputModule</div></div><div class="info-2"><div class="info-item-1">StandaloneInputModule</div></div></div></a><a class="pagination-related" href="/2026/07/04/Mask/" title="UGUI 源码剖析 —— Mask 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-04</div><div class="info-item-2">UGUI 源码剖析 —— Mask 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Mask 组件的模板缓冲实现原理与性能特征</div></div></div></a><a class="pagination-related" href="/2026/07/02/UGUI%20Batches/" title="Unity UGUI 合批机制深度解析"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-02</div><div class="info-item-2">Unity UGUI 合批机制深度解析</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 的合批原理、深度计算机制与实用优化策略</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/icon.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Avywenna</div><div class="author-info-description">転がる岩、君に朝が降る</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">17</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Avvywenna"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Avvywenna" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="https://space.bilibili.com/237232911" target="_blank" title="BiliBili"><i class="fab fa-bilibili" style="color: #fb7299;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">hi~ 是迷路的小猫咪吗</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%80%E3%80%81Graphic-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">1.</span> <span class="toc-text">一、Graphic 是什么？</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E8%84%8F%E6%A0%87%E8%AE%B0%EF%BC%88Dirty%EF%BC%89%E4%B8%8E%E9%87%8D%E5%BB%BA%EF%BC%88Rebuild%EF%BC%89%E6%9C%BA%E5%88%B6"><span class="toc-number">2.</span> <span class="toc-text">二、脏标记（Dirty）与重建（Rebuild）机制</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E9%87%8D%E5%BB%BA%E7%9A%84%E8%A7%A6%E5%8F%91%E6%97%B6%E6%9C%BA"><span class="toc-number">3.</span> <span class="toc-text">三、重建的触发时机</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9B%9B%E3%80%81PerformUpdate-%E7%9A%84%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F"><span class="toc-number">4.</span> <span class="toc-text">四、PerformUpdate 的执行顺序</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E4%BC%98%E5%8C%96%E5%90%AF%E7%A4%BA"><span class="toc-number">5.</span> <span class="toc-text">五、优化启示</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E5%88%86%E5%B8%A7%E5%A4%84%E7%90%86%E5%A4%A7%E9%87%8F-UI-%E6%9B%B4%E6%96%B0"><span class="toc-number">5.1.</span> <span class="toc-text">1. 分帧处理大量 UI 更新</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E5%87%8F%E5%B0%91%E8%84%8F%E6%A0%87%E8%AE%B0%E7%9A%84%E4%BA%A7%E7%94%9F"><span class="toc-number">5.2.</span> <span class="toc-text">2. 减少脏标记的产生</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E6%8E%A7%E5%88%B6%E5%B8%83%E5%B1%80%E9%80%92%E5%BD%92"><span class="toc-number">5.3.</span> <span class="toc-text">3. 控制布局递归</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%AD%E3%80%81Graphic-%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E9%92%A9%E5%AD%90"><span class="toc-number">6.</span> <span class="toc-text">六、Graphic 的生命周期钩子</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#OnEnable"><span class="toc-number">6.1.</span> <span class="toc-text">OnEnable()</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#DoMeshGeneration"><span class="toc-number">6.2.</span> <span class="toc-text">DoMeshGeneration()</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E6%89%A9%E5%B1%95%E8%83%BD%E5%8A%9B"><span class="toc-number">7.</span> <span class="toc-text">七、扩展能力</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%AB%E3%80%81%E6%80%BB%E7%BB%93"><span class="toc-number">8.</span> <span class="toc-text">八、总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GitHub图床搭建"/></a><div class="content"><a class="title" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建">GitHub图床搭建</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于Hexo + GitHub Page的博客搭建碎碎念"/></a><div class="content"><a class="title" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念">基于Hexo + GitHub Page的博客搭建碎碎念</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++ Learning [持续更新中]"/></a><div class="content"><a class="title" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]">C++ Learning [持续更新中]</a><time datetime="2026-07-17T10:36:27.715Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— ScrollRect 组件"/></a><div class="content"><a class="title" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件">UGUI 源码剖析 —— ScrollRect 组件</a><time datetime="2026-07-17T00:00:00.000Z" title="Created 2026-07-17 00:00:00">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— Selectable 组件"/></a><div class="content"><a class="title" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件">UGUI 源码剖析 —— Selectable 组件</a><time datetime="2026-07-15T00:00:00.000Z" title="Created 2026-07-15 00:00:00">2026-07-15</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Avywenna</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><div class="js-pjax"></div><div class="aplayer no-destroy" data-id="17791700195" data-server="netease" data-type="playlist" data-fixed="true" data-autoplay="true"> </div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      false
+        ? pjax.loadUrl('/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

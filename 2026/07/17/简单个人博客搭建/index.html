@@ -1,0 +1,467 @@
+<!DOCTYPE html><html lang="zh" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>基于Hexo + GitHub Page的博客搭建碎碎念 | Welcome</title><meta name="author" content="Avywenna"><meta name="copyright" content="Avywenna"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta name="description" content="基于Hexo+Butterfly主题的博客搭建过程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于Hexo + GitHub Page的博客搭建碎碎念">
+<meta property="og:url" content="https://avvywenna.github.io/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/index.html">
+<meta property="og:site_name" content="Welcome">
+<meta property="og:description" content="基于Hexo+Butterfly主题的博客搭建过程">
+<meta property="og:locale">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg">
+<meta property="article:published_time" content="2026-07-17T10:36:27.717Z">
+<meta property="article:modified_time" content="2026-05-06T08:21:22.000Z">
+<meta property="article:author" content="Avywenna">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "基于Hexo + GitHub Page的博客搭建碎碎念",
+  "url": "https://avvywenna.github.io/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/",
+  "image": "https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg",
+  "datePublished": "2026-07-17T10:36:27.717Z",
+  "dateModified": "2026-05-06T08:21:22.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Avywenna",
+      "url": "https://avvywenna.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/"><link rel="canonical" href="https://avvywenna.github.io/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '基于Hexo + GitHub Page的博客搭建碎碎念',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.1"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Welcome</span></a><a class="nav-page-title" href="/"><span class="site-name">基于Hexo + GitHub Page的博客搭建碎碎念</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">基于Hexo + GitHub Page的博客搭建碎碎念</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-05-06T08:21:22.000Z" title="Updated 2026-05-06 08:21:22">2026-05-06</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E4%BC%8A%E5%9C%B0%E7%9F%A5%E8%99%B9%E5%A4%8F%E7%9A%84%E5%A4%87%E5%BF%98%E5%BD%95/">伊地知虹夏的备忘录</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="一些碎碎念"><a href="#一些碎碎念" class="headerlink" title="一些碎碎念"></a>一些碎碎念</h2><p><strong>前排提醒本篇内容只针对系统Windows 11，不涉及其他系统</strong></p>
+<p>在前段时间在查资料，碰巧点进了<a target="_blank" rel="noopener" href="https://qlipphoth.github.io/">某位大佬</a>的个人博客，精致的布局和炫丽的背景令人眼前一亮，网页主题简洁、美观且实用，随后萌生了如果自己也有一个属于自己的这样的二次元小窝（×）就好了的想法。</p>
+<p>当我漫无目的地翻阅着的时候，在早期发布的帖子中翻到了关于博客搭建的分享，通过这篇文章我了解到原来搭建这个博客意外的方便，并没有我印象中的复杂（例如要自己部署服务器，自己写html、css等，我猜的）</p>
+<p>后来我依葫芦画瓢地也弄起了属于自己的博客网站。</p>
+<p>本站采用了Hexo博客框架 + GitHub Pages部署的方式搭建，所需的工作和环境：</p>
+<ul>
+<li>NodeJs </li>
+<li>Hexo</li>
+<li>Git</li>
+<li>Github</li>
+</ul>
+<p>关于这套搭建框架，在网上随便都能找到很多类似的，不过很多时候自己按照别人的流程来走的过程中，或多或少会碰到别人没有提及的问题，每当这种时候确实会很无力</p>
+<p>所以说，以下内容是我个人做法和踩坑的记录，希望对你有所帮助</p>
+<h2 id="NodeJs"><a href="#NodeJs" class="headerlink" title="NodeJs"></a>NodeJs</h2><p>关于<a target="_blank" rel="noopener" href="https://node.org.cn/en/about">NodeJs</a>，感兴趣的自行了解</p>
+<p>在本篇中，Hexo依赖NodeJs的环境来构建、运行网页，另外NodeJs在安装时会自动安装npm，正好是我们所需要的，例如我们需要使用npm来安装、初始化我们的Hexo项目</p>
+<p>点击<a target="_blank" rel="noopener" href="https://nodejs.org/zh-cn/download/">NodeJs官方下载页面</a>，选择下载Windows系统的.msi程序并安装，在安装程序中一路选择Next直到安装结束</p>
+<p>在命令行窗口中执行以下命令查看是否安装成功</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">node <span class="literal">-v</span> <span class="comment"># 查看NodeJs版本</span></span><br><span class="line">npm <span class="literal">-v</span> <span class="comment"># 查看Npm版本</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="Github"><a href="#Github" class="headerlink" title="Github"></a>Github</h2><p><em>GitHub 注册和登录</em></p>
+<p>如果你是第一次使用GitHub，需要先<a target="_blank" rel="noopener" href="https://github.com/login">注册并登录</a></p>
+<p>Github有时候裸连会不太稳定，如果遇到网络问题，可以试试<a target="_blank" rel="noopener" href="https://steampp.net/">Watt Toolkit</a>免费的GitHub加速工具，或者考虑科学上网</p>
+<p><em>GitHub 新建仓库</em></p>
+<p>Hexo博客的部署需要我们准备两个GitHub仓库</p>
+<p>在<a target="_blank" rel="noopener" href="https://github.com/dashboard">GitHub首页</a>，点击<a target="_blank" rel="noopener" href="https://github.com/new">创建</a>仓库（Respository）。</p>
+<p>第一个是<strong>用于管理项目源文件</strong>的仓库</p>
+<p>该仓库主要负责管理你的文章原稿、草稿以及网站配置等资源，所以推荐将仓库可见性设置为Private</p>
+<p>选择勾选创建ReadMe文件，来使仓库初始状态不为空，至于其他选项可以保持默认</p>
+<p>确认无误后，点击 Create repository 完成创建</p>
+<p>第二个是<strong>用于部署网站</strong>的仓库</p>
+<p>关于GitHub仓库是如何被用于部署网站的，可以点击<a target="_blank" rel="noopener" href="https://githubdocs.cn/en/pages/getting-started-with-github-pages/what-is-github-pages">这里</a>了解</p>
+<p>回到<a target="_blank" rel="noopener" href="https://github.com/dashboard">首页</a>点击创建仓库</p>
+<p>根据GitHub Pages的使用规范，我们需要将仓库的名称命名为<strong>USERNAME.github.io</strong>，USERNAME替换为你的GitHub用户名，例如我的GitHub用户名是Avvywenna，那么这里的仓库命名就是avvywenna.github.io（主要大小写替换）</p>
+<p>然后选择仓库可见性为Public（默认就是）</p>
+<p>最后点击Create repository 完成创建</p>
+<h2 id="Git"><a href="#Git" class="headerlink" title="Git"></a>Git</h2><p><a target="_blank" rel="noopener" href="https://git-scm.com/install/windows">前往官网</a>，选择Git for Windows&#x2F;x64 Setup，下载完成后打开安装程序，在安装程序中一路选择Next完成安装</p>
+<p>在命令行窗口中，执行以下指令查看是否安装成功</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="literal">-v</span> <span class="comment"># 打印git版本，如：git version 2.53.0.windows.2</span></span><br></pre></td></tr></table></figure>
+
+<p>执行以下命令初始化git全局设置</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git config <span class="literal">--global</span> user.name YourGitHubName <span class="comment"># 你的github用户名</span></span><br><span class="line"></span><br><span class="line">git config <span class="literal">--global</span> user.email YourGitHubEmail <span class="comment"># 你的github使用的邮箱</span></span><br></pre></td></tr></table></figure>
+
+<p>在 C:\Users\XXX\.gitconfig 配置文件中可以看到git配置</p>
+<h2 id="Hexo"><a href="#Hexo" class="headerlink" title="Hexo"></a>Hexo</h2><p>关于<a target="_blank" rel="noopener" href="https://hexo.io/zh-cn/">Hexo</a></p>
+<p>最权威的使用文档请看<a target="_blank" rel="noopener" href="https://hexo.io/zh-cn/docs/commands">这里</a></p>
+<h3 id="一、Hexo-安装"><a href="#一、Hexo-安装" class="headerlink" title="一、Hexo 安装"></a>一、Hexo 安装</h3><p>在命令行窗口中，通过npm安装Hexo环境</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install <span class="literal">-g</span> hexo<span class="literal">-cli</span> <span class="comment"># 安装Hexo</span></span><br></pre></td></tr></table></figure>
+
+<p>待下载完成后，在 C:\Users\xxxx\AppData\Roaming\npm\node_modules\ 可以看到hexo-cli目录</p>
+<p>回到命令行窗口中，查看Hexo版本</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo <span class="literal">-v</span> <span class="comment"># 查看Hexo版本</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="二、Hexo-初始化"><a href="#二、Hexo-初始化" class="headerlink" title="二、Hexo 初始化"></a>二、Hexo 初始化</h3><p>在命令行窗口中，通过hexo指令初始化Hexo项目</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 注意命令执行时的路径是你所期望的</span></span><br><span class="line"><span class="comment"># 该命令会在命令行当前执行路径下创建一个以hexo_base命名的新文件夹</span></span><br><span class="line">hexo init hexo_base <span class="comment"># hexo_base 命令替换为任意有效名称，不是很重要</span></span><br></pre></td></tr></table></figure>
+
+<p>该指令本质上是通过 Git 从GitHub上Clone了一份Hexo预制好的项目框架</p>
+<p><strong>题外话</strong></p>
+<pre><code>hexo init 指令首先会尝试从GitHub下载项目文件到本地，但当GitHub访问失败时，hexo会从hexo-cli下的asset目录进行拷贝
+</code></pre>
+<p>在命令行窗口中，初始化刚创建的hexo项目</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> hexo_base <span class="comment"># hexo_base 替换为你自己命名的项目名称</span></span><br><span class="line">npm install <span class="comment"># 这里会去下载package.json中记录的依赖资源，并生成package-lock.json</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="三、Hexo-启动"><a href="#三、Hexo-启动" class="headerlink" title="三、Hexo 启动"></a>三、Hexo 启动</h3><p>在命令行窗口中，构建并运行 Hexo 项目</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo clean;hexo g;hexo s</span><br></pre></td></tr></table></figure>
+
+<p>在浏览器中访问 <a target="_blank" rel="noopener" href="http://localhost:4000/">http://localhost:4000</a>，可以看到hexo已经在本地部署成功</p>
+<p>默认展示的页面来自 &#x2F;hexo_base&#x2F;public&#x2F;index.html，对其进行修改，可以在浏览器中实时看到网页的变化（需要刷新）</p>
+<h3 id="四、Hexo-项目结构（可跳过）"><a href="#四、Hexo-项目结构（可跳过）" class="headerlink" title="四、Hexo 项目结构（可跳过）"></a>四、Hexo 项目结构（可跳过）</h3><p>初始的项目文件夹结构如下</p>
+<pre><code>.
+├── .github
+|   └── dependabot.yml
+├── _config.yml
+├── .gitignore
+├── package.json
+├── scaffolds
+├── source
+|   └── _posts
+├── node_modules
+├── public
+└── themes
+</code></pre>
+<hr>
+<p><strong>.github</strong></p>
+<p>这是一个跟GitHub相关的目录，用于项目的自动化管理</p>
+<p>默认状态下.github内还有一个dependabot.yml，是用于给Hexo项目自动打理项目的依赖更新、版本管理等</p>
+<p>在后续内容中，我们也会在.github内部署我们自己的工作流配置，用于Hexo的自动化构建部署</p>
+<hr>
+<p><strong>_config.yml</strong></p>
+<p>Hexo基础样式配置文件，以下是一些比较常用的配置项</p>
+<pre><code># Site 站点配置
+Title: 博客主页大标题/浏览器页签主标题
+subtitle: 浏览器页签副标题
+description: 博客主页的介绍，通常是一些作者个人介绍或者博客介绍等
+author: 博客作者
+language: 站点语言，如zh
+timezone: 站点时区
+
+# URL 
+url: 站点首页链接，在我们的GitHub Pages完成部署后，可以将可访问链接填在这个位置（这会在很久之后）
+
+# Extensions 站点扩展
+theme: 博客使用的主题，在本篇中，我们会使用butterfly作为博客的样式主题
+</code></pre>
+<p>除了上述我提到的字段外，Hexo还有其他很多的自定义内容，更详细的介绍请移步<a target="_blank" rel="noopener" href="https://hexo.io/zh-cn/docs/configuration">官方文档</a>。</p>
+<hr>
+<p><strong>.gitignore</strong></p>
+<p>Git会无视记录在.gitignore文件里的文件的修改</p>
+<hr>
+<p><strong>package.json</strong></p>
+<p>站点的应用程序信息文件，记录了网站的基础信息、项目的依赖管理等，大多数情况下无需我们关心</p>
+<hr>
+<p><strong>scaffolds</strong></p>
+<p>当你通过Hexo指令新建帖子时，Hexo 会从 scaffolds 中选择一个md模版进行创建，这个模版默认是post，也可以指定特定模版</p>
+<p>例如通过以下命令使用 photo 作为模版新建一篇文章，并且命名为”My Gallery”</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo new photo <span class="string">&quot;My Gallery&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>在执行这行指令时，Hexo 会尝试在 scaffolds 文件夹中寻找 photo.md，并根据其内容建立文章。</p>
+<p>scaffolds内置了三种模版：post、page 和 draft。其中post是默认模版。</p>
+<hr>
+<p><strong>source</strong></p>
+<p>source是存放我们文章的地方，初始状态下该目录下只有一个 _post 子目录</p>
+<p>当我们以 post 模版新建帖子时，被新建的文件会被放在 _post 目录下</p>
+<p>在 _post 目录中的内容会在 hexo 构建的时候发布到 public 中，然后可以在站点内访问</p>
+<p>除了 _post 目录外，还有一些我们会用到但是没有被默认创建的目录</p>
+<ol>
+<li><p><strong>_draft</strong></p>
+<p> 当我们以 draft 模版新建帖子时，被新建的文件会被放在 _draft 目录下，在这里的内容通常被视为草稿，不会被hexo处理</p>
+</li>
+<li><p><strong>categories</strong></p>
+<p> categories目录赋予站点可按分类检索内容的机能，相当于给站点添加一个分类的板块</p>
+<p> 在categories目录下，新建文件index.md，其内容如下</p>
+ <figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">---</span><br><span class="line">title: Categories</span><br><span class="line">author: YourName</span><br><span class="line">date: 2026-04-30 17:00:00</span><br><span class="line"><span class="section">type: &quot;categories&quot;</span></span><br><span class="line"><span class="section">---</span></span><br></pre></td></tr></table></figure>
+
+<p> 这会使在站点主页会出现一个分类板块，在这上面会展示出你所使用过的分类标签，更详细的使用方式移步至<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/50787870">这里</a></p>
+</li>
+<li><p><strong>tags</strong></p>
+<p> 跟categories类似，使用方式移步至<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/50787870">这里</a></p>
+</li>
+</ol>
+<hr>
+<p><strong>node_modules</strong></p>
+<pre><code>node_modules 文件夹是 npm 通过 npm install 自动生成的目录，用于存放项目所依赖的所有第三方模块（包）
+Hexo 在执行 hexo g（生成静态文件）或 hexo s（启动本地服务器）时，会从 node_modules 中加载所需的模块代码
+在版本控制（如 Git）中，一般会忽略 node_modules（通过 .gitignore），因为其内容可以根据 package.json 和 package-lock.json 通过 npm install 重新生成
+</code></pre>
+<hr>
+<p><strong>public</strong></p>
+<p>Hexo在构建启动时会在public目录里生成网页代码和资源，可以理解为网页本身</p>
+<hr>
+<p><strong>theme</strong></p>
+<p>不同的网页主题脚本存放于此，在构建时Hexo根据配置的主题来生成静态页面</p>
+<h3 id="五、Hexo的美化"><a href="#五、Hexo的美化" class="headerlink" title="五、Hexo的美化"></a>五、Hexo的美化</h3><p>Butterfly是一个简洁的、卡片式UI设计的Hexo网页主题。在<a target="_blank" rel="noopener" href="https://butterfly.js.org/">Butterfly官网</a> - 快速开始，可以找到非常详细的部署教程</p>
+<p><strong>稳定版下载</strong></p>
+<p>打开命令行窗口，来到博客项目的根目录，从GitHub下载稳定版主题项目</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone <span class="literal">-b</span> master https://github.com/jerryc127/hexo<span class="literal">-theme-butterfly</span>.git themes/butterfly <span class="comment"># 下载到themes文件夹</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>应用主题</strong></p>
+<p>修改_config.yml里的主题为 butterfly</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">theme:</span> <span class="string">butterfly</span> <span class="comment">#注意空格</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>安装渲染插件</strong></p>
+<p>打开命令行窗口，来到博客项目根目录，安装主题渲染所需组件</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install hexo<span class="literal">-renderer-pug</span> hexo<span class="literal">-renderer-stylus</span> <span class="literal">--save</span></span><br></pre></td></tr></table></figure>
+
+<p>至此主题部署完成，在themes\butterfly\下的_config.yml中可以对美化主题进行自定义设置，之后重新构建启动 hexo 即可</p>
+<p>当需要升级主题时，可以在themes\butterfly内通过git pull更新</p>
+<p>由于我们可能会修改butterfly内的_config.yml，所以在拉取的时候会发生冲突，需要我们选择要保留的部分来解决冲突</p>
+<p><strong>优化主题升级（可跳过）</strong></p>
+<ol>
+<li>在博客项目根目录下新建文件 _config.butterfly.yml</li>
+<li>将themes&#x2F;butterfly&#x2F;下的_config.yml的内容拷贝到 _config.butterfly.yml</li>
+<li>所有主题配置的修改都在 _config.butterfly.yml 进行</li>
+</ol>
+<p>Hexo在构建时会合并 _config.butterfly.yml 和主题自己的 _config.yml，对于同名的配置会优先采用前者</p>
+<h3 id="六、GitHub-Pages部署"><a href="#六、GitHub-Pages部署" class="headerlink" title="六、GitHub Pages部署"></a>六、GitHub Pages部署</h3><p><strong>GitHub仓库关联</strong></p>
+<p>我们之前创建了两个仓库，一个 Private 仓库以及一个 Public 仓库，Private 仓库用于管理我们博客项目源文件，Public 仓库用于部署站点</p>
+<p>现在我们可以来继续完成这两个仓库的配置和部署了</p>
+<p>首先将本地的博客项目提交到 Private 仓库，你可以在网上找到相当多的教程，例如这是我找到的一篇关于<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_43682905/article/details/149019778">如何将本地项目上传到GitHub仓库</a></p>
+<p>然后以下是我自己的做法（仅供参考）</p>
+<p>找到 Private 仓库，复制其链接：<a target="_blank" rel="noopener" href="https://github.com/Avvywenna/for-test.git">https://github.com/Avvywenna/for-test.git</a> </p>
+<p>打开命令行窗口，来到空文件夹内， 执行 git clone <a target="_blank" rel="noopener" href="https://github.com/Avvywenna/for-test.git">https://github.com/Avvywenna/for-test.git</a></p>
+<p>将博客项目的内容全部拷贝到for-test文件夹内，然后进入到 for-test&#x2F;themes&#x2F;butterfly&#x2F; 将.git删掉（这是因为git会将其识别为第三方的 Git 仓库会产生警告，如果不想处理的话就直接删掉 .git，但是会导致后续无法通过 git 更新版本）</p>
+<p>回到命令行窗口，将for-test内新增内容同步到GitHub</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">git add . <span class="comment"># 添加所有文件</span></span><br><span class="line">git status <span class="comment"># 查看当前文件状态</span></span><br><span class="line">git commit <span class="literal">-m</span> <span class="string">&quot;提交&quot;</span> <span class="comment"># 提交</span></span><br><span class="line">git push <span class="comment"># 推送到GitHub</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<hr>
+<p><strong>GitHub Pages配置</strong></p>
+<p>接着对第二个 Public 仓库配置，我们要在 Public 仓库上开启 GitHub Pages 的功能</p>
+<p>找到 Public 仓库，在 Settings 处找到 Pages 设置项</p>
+<p>将部署来源 Source 设置为 Deploy from a branch，将部署分支来源 Branch 保持为 None</p>
+<p>部署分支来源是由GitHub Actions自动创建的分支，目前还没有激活GitHub Actions的功能，所以这里还不存在这样的分支</p>
+<hr>
+<p><strong>GitHub Actions配置</strong></p>
+<p><a target="_blank" rel="noopener" href="https://docs.github.com/zh/actions">关于GitHub Actions</a></p>
+<p>第一步、创建GitHub Token</p>
+<p>点击创建一个<a target="_blank" rel="noopener" href="https://github.com/settings/tokens/new">GitHub Token</a>，用于赋予GitHub Actions的生效范围和权限，这里需要在 Select scopes 勾选 repo 和 workflow</p>
+<p>点击 Generate token 完成创建</p>
+<p>根据提示，请务必将生成的Token拷贝保存好（复制到其他你能随时找到的地方）</p>
+<p>第二步、创建Respository secret</p>
+<p>打开 Private 仓库，在 Settings - Security - Security and variables 处，选择 Actions，点击 New respository secret</p>
+<p>在 Name 处填 HEXO_DEPLOY（任意有意义的名称，后续需要用到）</p>
+<p>在 Secret 处填刚刚保存下来的 Token 字符串</p>
+<p>点击 Add secret 完成创建</p>
+<p>第三步、创建 Actions 配置文件</p>
+<p><em>注：下面需要在 Git 仓库内创建文件，你可以直接在 GitHub 上在线创建，也可以在本地博客项目创建，然后通过 git 提交到 GitHub</em></p>
+<p>在 Private 仓库根目录创建 .github\workflows\，.github 是项目自带的，因此只需要再创建一个 workflows 目录，接着在 workflows 文件夹下创建 hexo-deploy.yml 文件</p>
+<p>hexo-deploy.yml 的内容如下，请根据注释进行替换修改</p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">name:</span> <span class="string">deploying</span> <span class="string">Hexo</span> <span class="string">project</span> <span class="string">to</span> <span class="string">GitHub</span> <span class="string">pages</span></span><br><span class="line"><span class="attr">on:</span></span><br><span class="line">  <span class="attr">push:</span></span><br><span class="line">    <span class="attr">branches:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">main</span></span><br><span class="line"><span class="attr">jobs:</span></span><br><span class="line">  <span class="attr">build-and-deploy:</span></span><br><span class="line">    <span class="attr">runs-on:</span> <span class="string">ubuntu-latest</span></span><br><span class="line">    </span><br><span class="line">    <span class="attr">steps:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Checkout</span></span><br><span class="line">      <span class="attr">uses:</span> <span class="string">actions/checkout@main</span></span><br><span class="line">      <span class="attr">with:</span></span><br><span class="line">        <span class="attr">fetch-depth:</span> <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">Build</span> <span class="string">and</span> <span class="string">Deploy</span></span><br><span class="line">      <span class="attr">uses:</span> <span class="string">theme-keep/hexo-deploy-github-pages-action@master</span></span><br><span class="line">      <span class="attr">env:</span></span><br><span class="line">        <span class="comment"># Your GitHub Token</span></span><br><span class="line">        <span class="attr">PERSONAL_TOKEN:</span> <span class="string">$&#123;&#123;</span> <span class="string">secrets.HEXO_DEPLOY</span> <span class="string">&#125;&#125;</span>  <span class="comment"># HEXO_DEPLOY改为你自己的Respository secret 命名</span></span><br><span class="line">        <span class="comment"># The repository the action should deploy to</span></span><br><span class="line">        <span class="attr">PUBLISH_REPOSITORY:</span> <span class="string">Avvywenna/Avvywenna.github.io</span> <span class="comment"># 替换为自己的Private仓库链接</span></span><br><span class="line">        <span class="attr">BRANCH:</span> <span class="string">gh-pages</span> <span class="comment"># 分支，填 gh-pages 就行 会自动创建</span></span><br><span class="line">        <span class="attr">PUBLISH_DIR:</span> <span class="string">./public</span> <span class="comment"># 部署 public 目录下的文件 默认是这个不需要修改</span></span><br></pre></td></tr></table></figure>
+
+<p>在 hexo-deploy.yml 中，我们引用了第三方的 Actions 配置：theme-keep&#x2F;hexo-deploy-github-pages-action@master，这是一款专门将 Hexo 部署到 GitHub pages 的 Actions</p>
+<hr>
+<p>确保你的修改都提交到 GitHub，后续在 main 分支修改源文件时（可以在线修改，或通过 Git 提交），会自动触发上述配置的 GitHub Actions 工作流，它会对 Hexo 重新构建，然后推送到 Public 仓库的 gh-pages 分支（会自动创建），最后 GitHub Pages 会将仓库的内容部署为网站，并可以通过它提供的地址访问</p>
+<p>你需要完成至少一次Commit来启动 GitHub Actions，这样在 Public 仓库中才会被创建 gh-pages 分支</p>
+<p><strong>博客网站部署</strong></p>
+<p>回到 Public 仓库，在 Settings - Pages 页面，将 Branch 设置为 gh-pages</p>
+<p>如果一切正常，你就可以通过<a href="https://????.github.io/">https://????.github.io/</a>来访问，此处的 ????.github.io 是你的 Public 仓库名称，实际上在 Pages 页面也有相关的内容描述</p>
+<p>关于在 GitHub Pages 中使用自定义的域名，可以在互联网上查找相关资料了解，这里不作为重点介绍</p>
+<p><strong>关于异常</strong></p>
+<p>有可能到最后你并无法成功访问到自己的博客，可能有以下一些原因</p>
+<ul>
+<li><p>hexo-deploy.yml 配置文件填写错误、格式错误</p>
+<p>  这种情况需要检查内容是否确认无误，另外也需要确认缩进是否正确</p>
+</li>
+<li><p>Actions 构建报错<br>  这种情况我遇到的比较少，需要根据具体问题去查找解决办法，它可能是由于 Respoitory secret 配置错了、相关名称拼写错了等导致的</p>
+</li>
+<li><p>构建成功，但是网站访问不到<br>  一种可能的情况是 Public 仓库的名称没有跟 GitHub 用户名保持一致（除了大小写）</p>
+</li>
+<li><p>如果遇到更多的问题，相信你静下心来一定能找到解决办法的</p>
+</li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>啰里啰唆地终于把整个搭建流程整理完了</p>
+<p>由于个人时间安排问题，导致一整篇内容的完成在时间上间隔了很长一段，以至于一些坑在早期遇到，但是后面写的时候就忘记了，尽管如此还是尽量把过程记录的尽量详细，如果有一些更重要的信息没有提及的话请多包涵</p>
+<p>关于博客搭建的记录也到这里为止，整体上是按照其他大佬的介绍加上自身的经历来一点点补全的</p>
+<p>后面的话可以开始干点正事了</p>
+<hr>
+<p>内容最后修改于 2026&#x2F;5&#x2F;6 15:52</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io">Avywenna</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/">https://avvywenna.github.io/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">GitHub图床搭建</div></div><div class="info-2"><div class="info-item-1">使用PicGO管理你的GitHub图床吧</div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/icon.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Avywenna</div><div class="author-info-description">転がる岩、君に朝が降る</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">17</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Avvywenna"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Avvywenna" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="https://space.bilibili.com/237232911" target="_blank" title="BiliBili"><i class="fab fa-bilibili" style="color: #fb7299;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">hi~ 是迷路的小猫咪吗</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E4%BA%9B%E7%A2%8E%E7%A2%8E%E5%BF%B5"><span class="toc-number">1.</span> <span class="toc-text">一些碎碎念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#NodeJs"><span class="toc-number">2.</span> <span class="toc-text">NodeJs</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Github"><span class="toc-number">3.</span> <span class="toc-text">Github</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Git"><span class="toc-number">4.</span> <span class="toc-text">Git</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Hexo"><span class="toc-number">5.</span> <span class="toc-text">Hexo</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%80%E3%80%81Hexo-%E5%AE%89%E8%A3%85"><span class="toc-number">5.1.</span> <span class="toc-text">一、Hexo 安装</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%8C%E3%80%81Hexo-%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="toc-number">5.2.</span> <span class="toc-text">二、Hexo 初始化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E3%80%81Hexo-%E5%90%AF%E5%8A%A8"><span class="toc-number">5.3.</span> <span class="toc-text">三、Hexo 启动</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%9B%E3%80%81Hexo-%E9%A1%B9%E7%9B%AE%E7%BB%93%E6%9E%84%EF%BC%88%E5%8F%AF%E8%B7%B3%E8%BF%87%EF%BC%89"><span class="toc-number">5.4.</span> <span class="toc-text">四、Hexo 项目结构（可跳过）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%94%E3%80%81Hexo%E7%9A%84%E7%BE%8E%E5%8C%96"><span class="toc-number">5.5.</span> <span class="toc-text">五、Hexo的美化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%AD%E3%80%81GitHub-Pages%E9%83%A8%E7%BD%B2"><span class="toc-number">5.6.</span> <span class="toc-text">六、GitHub Pages部署</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">6.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GitHub图床搭建"/></a><div class="content"><a class="title" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建">GitHub图床搭建</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于Hexo + GitHub Page的博客搭建碎碎念"/></a><div class="content"><a class="title" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念">基于Hexo + GitHub Page的博客搭建碎碎念</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++ Learning [持续更新中]"/></a><div class="content"><a class="title" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]">C++ Learning [持续更新中]</a><time datetime="2026-07-17T10:36:27.715Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— ScrollRect 组件"/></a><div class="content"><a class="title" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件">UGUI 源码剖析 —— ScrollRect 组件</a><time datetime="2026-07-17T00:00:00.000Z" title="Created 2026-07-17 00:00:00">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— Selectable 组件"/></a><div class="content"><a class="title" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件">UGUI 源码剖析 —— Selectable 组件</a><time datetime="2026-07-15T00:00:00.000Z" title="Created 2026-07-15 00:00:00">2026-07-15</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Avywenna</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><div class="js-pjax"></div><div class="aplayer no-destroy" data-id="17791700195" data-server="netease" data-type="playlist" data-fixed="true" data-autoplay="true"> </div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      false
+        ? pjax.loadUrl('/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

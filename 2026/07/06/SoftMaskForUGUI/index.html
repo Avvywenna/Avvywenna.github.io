@@ -1,0 +1,344 @@
+<!DOCTYPE html><html lang="zh" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>SoftMaskForUGUI 源码分析与实现原理 | Welcome</title><meta name="author" content="Avywenna"><meta name="copyright" content="Avywenna"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta name="description" content="深入分析 SoftMaskForUGUI 插件的离屏渲染与软遮罩实现原理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SoftMaskForUGUI 源码分析与实现原理">
+<meta property="og:url" content="https://avvywenna.github.io/2026/07/06/SoftMaskForUGUI/index.html">
+<meta property="og:site_name" content="Welcome">
+<meta property="og:description" content="深入分析 SoftMaskForUGUI 插件的离屏渲染与软遮罩实现原理">
+<meta property="og:locale">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg">
+<meta property="article:published_time" content="2026-07-06T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-07T07:45:39.000Z">
+<meta property="article:author" content="Avywenna">
+<meta property="article:tag" content="SoftMask">
+<meta property="article:tag" content="UGUI">
+<meta property="article:tag" content="Unity">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "SoftMaskForUGUI 源码分析与实现原理",
+  "url": "https://avvywenna.github.io/2026/07/06/SoftMaskForUGUI/",
+  "image": "https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg",
+  "datePublished": "2026-07-06T00:00:00.000Z",
+  "dateModified": "2026-07-07T07:45:39.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Avywenna",
+      "url": "https://avvywenna.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/"><link rel="canonical" href="https://avvywenna.github.io/2026/07/06/SoftMaskForUGUI/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'SoftMaskForUGUI 源码分析与实现原理',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.1"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Welcome</span></a><a class="nav-page-title" href="/"><span class="site-name">SoftMaskForUGUI 源码分析与实现原理</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">SoftMaskForUGUI 源码分析与实现原理</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-07-06T00:00:00.000Z" title="Created 2026-07-06 00:00:00">2026-07-06</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-07-07T07:45:39.000Z" title="Updated 2026-07-07 07:45:39">2026-07-07</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/">Unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/UGUI/">UGUI</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p><code>SoftMaskForUGUI</code> 的核心设计理念是 <strong>离屏渲染（RenderTexture）+ 自定义 Shader</strong>，通过在 CPU 端手动构建渲染指令，将遮罩图形绘制到一张中间纹理上，再将该纹理作为独立的遮罩参数传递给子元素的 Shader，从而实现边缘平滑的遮罩效果。</p>
+<h2 id="一、核心组件与生命周期"><a href="#一、核心组件与生命周期" class="headerlink" title="一、核心组件与生命周期"></a>一、核心组件与生命周期</h2><h3 id="1-UpdateParentSoftMask"><a href="#1-UpdateParentSoftMask" class="headerlink" title="1. UpdateParentSoftMask"></a>1. <code>UpdateParentSoftMask</code></h3><ul>
+<li>在发生 <code>MaterialDirty</code> 或 <code>OnTransformParentChanged</code> 时被调用</li>
+<li>用于更新当前 <code>SoftMask</code> 组件所持有的 <strong>直接上级 SoftMask 引用</strong></li>
+<li>每个 <code>SoftMask</code> 都会持有一个指向其父级 <code>SoftMask</code> 的引用（如果有的话），形成一条 <strong>自下而上的链式引用关系</strong></li>
+</ul>
+<h3 id="2-RenderSoftMaskBuffer"><a href="#2-RenderSoftMaskBuffer" class="headerlink" title="2. RenderSoftMaskBuffer"></a>2. <code>RenderSoftMaskBuffer</code></h3><ul>
+<li>在 Canvas 开始渲染时被调用</li>
+<li>将自身以及所有父级 <code>SoftMask</code> 绘制到一张 <code>RenderTexture</code> 上</li>
+<li><code>RenderTexture</code> 的尺寸受组件中的 <strong>降采样率（Desampling Rate）</strong> 控制，降采样率越高，渲染性能越好，边缘精细度略有下降</li>
+</ul>
+<h2 id="二、嵌套-SoftMask-的叠加渲染"><a href="#二、嵌套-SoftMask-的叠加渲染" class="headerlink" title="二、嵌套 SoftMask 的叠加渲染"></a>二、嵌套 SoftMask 的叠加渲染</h2><p>当存在多层 <code>SoftMask</code> 嵌套时（例如 A → B → C，其中 C 是 A 和 B 的子级），渲染结果遵循 <strong>“后渲染覆盖先渲染”</strong> 的叠加规则：</p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>渲染范围</th>
+<th>最终结果中的内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>最外层 A</td>
+<td>仅 A 自身</td>
+<td>仅 A 的遮罩图形</td>
+</tr>
+<tr>
+<td>中间层 B</td>
+<td>A + B 的叠加</td>
+<td>B 覆盖在 A 之上</td>
+</tr>
+<tr>
+<td>最内层 C</td>
+<td>A + B + C 的叠加</td>
+<td>C 覆盖在 B 之上，再覆盖在 A 之上</td>
+</tr>
+</tbody></table>
+<h3 id="渲染结果的两种使用方式"><a href="#渲染结果的两种使用方式" class="headerlink" title="渲染结果的两种使用方式"></a>渲染结果的两种使用方式</h3><ul>
+<li><strong>在父级 <code>SoftMask</code> 中</strong>：渲染结果仅作为临时中间纹理，用于继续叠加子级遮罩。</li>
+<li><strong>在最内层 <code>SoftMask</code>（叶子节点）中</strong>：渲染结果作为 <strong>最终遮罩贴图</strong>，传递给子 <code>SoftMaskable</code> 元素，用于实际渲染。</li>
+</ul>
+<blockquote>
+<p>该插件最多支持 <strong>4 层</strong> <code>SoftMask</code> 嵌套，超出部分将被忽略。</p>
+</blockquote>
+<h2 id="三、子物体（SoftMaskable）的渲染流程"><a href="#三、子物体（SoftMaskable）的渲染流程" class="headerlink" title="三、子物体（SoftMaskable）的渲染流程"></a>三、子物体（<code>SoftMaskable</code>）的渲染流程</h2><p><code>SoftMaskable</code> 组件挂载在 <code>SoftMask</code> 下的子 UI 元素上（如 <code>Image</code>、<code>RawImage</code>、<code>Text</code> 等），它通过以下机制参与渲染：</p>
+<ol>
+<li><strong>实现 <code>IMaterialModifier</code> 接口</strong>：通过 <code>GetModifiedMaterial</code> 方法，拦截并替换自身的渲染材质。</li>
+<li><strong>材质替换</strong>：<code>GetModifiedMaterial</code> 会返回一个 <strong>自定义材质</strong>，该材质：<ul>
+<li><strong>保留子元素原有的 <code>mainTexture</code></strong>（即 <code>Image</code> 的 Sprite 纹理或 <code>RawImage</code> 的纹理）</li>
+<li><strong>额外接收父级 <code>SoftMask</code> 的 <code>RenderTexture</code> 作为遮罩纹理</strong>（通常绑定到 <code>_SoftMaskTex</code> 等 Shader 属性）</li>
+<li>绑定父级 <code>SoftMask</code> 的遮罩参数（如软边缘范围、透明度阈值等）</li>
+</ul>
+</li>
+<li><strong>最终渲染</strong>：修改后的材质经由 <code>CanvasRenderer</code> 提交给 GPU。在片元着色器中，对 <code>_SoftMaskTex</code> 进行采样，结合主纹理的颜色，根据遮罩图形的透明度梯度计算出最终的 Alpha 值，实现边缘平滑效果。</li>
+</ol>
+<h2 id="四、实现细节与优化"><a href="#四、实现细节与优化" class="headerlink" title="四、实现细节与优化"></a>四、实现细节与优化</h2><p><code>SoftMaskForUGUI</code> 在实际实现中，还包含以下值得关注的细节：</p>
+<h4 id="1-帧缓存（FrameCache）"><a href="#1-帧缓存（FrameCache）" class="headerlink" title="1. 帧缓存（FrameCache）"></a>1. 帧缓存（FrameCache）</h4><ul>
+<li>用于防止同一帧内对同一数据重复创建或重复调用</li>
+<li>减少不必要的 CPU 和 GPU 开销，提升性能</li>
+</ul>
+<h4 id="2-VR-立体视角支持"><a href="#2-VR-立体视角支持" class="headerlink" title="2. VR 立体视角支持"></a>2. VR 立体视角支持</h4><ul>
+<li>插件对 VR 环境下的双目渲染做了适配</li>
+<li>确保在立体渲染模式下遮罩效果正确</li>
+</ul>
+<h4 id="3-UGUI-脏标记接入"><a href="#3-UGUI-脏标记接入" class="headerlink" title="3. UGUI 脏标记接入"></a>3. UGUI 脏标记接入</h4><ul>
+<li><code>SoftMask</code> 和 <code>SoftMaskable</code> 都接入了 UGUI 的脏标记管理系统</li>
+<li>仅在必要时（如材质变化、尺寸变化、父级变化）才触发重建，避免每帧全量更新</li>
+</ul>
+<h4 id="4-扩展方法"><a href="#4-扩展方法" class="headerlink" title="4. 扩展方法"></a>4. 扩展方法</h4><ul>
+<li>对 <code>Graphic</code>、<code>Canvas</code>、<code>RectTransform</code> 等常用组件提供了便捷扩展方法</li>
+<li>用于快速获取父级 <code>SoftMask</code>、检查是否处于遮罩范围等</li>
+</ul>
+<h2 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h2><table>
+<thead>
+<tr>
+<th>核心概念</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>实现方案</td>
+<td>离屏渲染（RenderTexture）+ 自定义 Shader</td>
+</tr>
+<tr>
+<td>核心组件</td>
+<td><code>UpdateParentSoftMask</code>（更新父级引用）、<code>RenderSoftMaskBuffer</code>（执行离屏渲染）</td>
+</tr>
+<tr>
+<td>子元素渲染方式</td>
+<td>保留自身 <code>mainTexture</code>，额外接收 <code>RenderTexture</code> 作为遮罩纹理</td>
+</tr>
+<tr>
+<td>嵌套支持</td>
+<td>最多支持 4 层嵌套，渲染结果逐层叠加</td>
+</tr>
+<tr>
+<td>优化手段</td>
+<td>降采样率、帧缓存、脏标记管理、VR 适配</td>
+</tr>
+<tr>
+<td>额外开销</td>
+<td>RenderTexture 内存 + 离屏渲染 DrawCall + 材质切换</td>
+</tr>
+</tbody></table>
+<hr>
+<blockquote>
+<p>📝 <strong>写在最后</strong><br><code>SoftMaskForUGUI</code> 通过对 UGUI 渲染管线的深度定制，在原生 <code>Mask</code> 的模板测试基础上，引入了离屏渲染和自定义 Shader 机制，实现了边缘平滑的遮罩效果。  </p>
+</blockquote>
+<hr>
+<p><em>本文为个人学习总结，如有不准确之处，欢迎指正交流。</em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io">Avywenna</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io/2026/07/06/SoftMaskForUGUI/">https://avvywenna.github.io/2026/07/06/SoftMaskForUGUI/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/UGUI/">UGUI</a><a class="post-meta__tags" href="/tags/SoftMask/">SoftMask</a></div><div class="post-share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/07/08/UGUI%20Event%20System/" title="UGUI 源码剖析 —— EventSystem 事件系统"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">UGUI 源码剖析 —— EventSystem 事件系统</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 事件系统的调度机制与源码实现</div></div></div></a><a class="pagination-related" href="/2026/07/04/Mask/" title="UGUI 源码剖析 —— Mask 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">UGUI 源码剖析 —— Mask 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Mask 组件的模板缓冲实现原理与性能特征</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/07/04/Mask/" title="UGUI 源码剖析 —— Mask 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-04</div><div class="info-item-2">UGUI 源码剖析 —— Mask 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Mask 组件的模板缓冲实现原理与性能特征</div></div></div></a><a class="pagination-related" href="/2026/07/02/CanvasUpdateRegistry/" title="UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-02</div><div class="info-item-2">UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 CanvasUpdateRegistry 的调度机制与源码细节</div></div></div></a><a class="pagination-related" href="/2026/07/13/Image/" title="UGUI 源码剖析 —— Image 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-13</div><div class="info-item-2">UGUI 源码剖析 —— Image 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Image 组件的渲染机制与网格生成逻辑</div></div></div></a><a class="pagination-related" href="/2026/07/04/ClipperRegistry/" title="UGUI 源码剖析 —— ClipperRegistry 与 RectMask2D"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-04</div><div class="info-item-2">UGUI 源码剖析 —— ClipperRegistry 与 RectMask2D</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 ClipperRegistry 的裁剪调度机制与 RectMask2D 实现原理</div></div></div></a><a class="pagination-related" href="/2026/07/02/UGUI%20Batches/" title="Unity UGUI 合批机制深度解析"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-02</div><div class="info-item-2">Unity UGUI 合批机制深度解析</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 的合批原理、深度计算机制与实用优化策略</div></div></div></a><a class="pagination-related" href="/2026/07/01/Graphic/" title="UGUI 源码剖析 —— Graphic 核心机制"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-01</div><div class="info-item-2">UGUI 源码剖析 —— Graphic 核心机制</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Graphic 类的底层原理与性能优化要点</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/icon.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Avywenna</div><div class="author-info-description">転がる岩、君に朝が降る</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">17</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Avvywenna"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Avvywenna" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="https://space.bilibili.com/237232911" target="_blank" title="BiliBili"><i class="fab fa-bilibili" style="color: #fb7299;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">hi~ 是迷路的小猫咪吗</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6%E4%B8%8E%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F"><span class="toc-number">1.</span> <span class="toc-text">一、核心组件与生命周期</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-UpdateParentSoftMask"><span class="toc-number">1.1.</span> <span class="toc-text">1. UpdateParentSoftMask</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-RenderSoftMaskBuffer"><span class="toc-number">1.2.</span> <span class="toc-text">2. RenderSoftMaskBuffer</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%B5%8C%E5%A5%97-SoftMask-%E7%9A%84%E5%8F%A0%E5%8A%A0%E6%B8%B2%E6%9F%93"><span class="toc-number">2.</span> <span class="toc-text">二、嵌套 SoftMask 的叠加渲染</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B8%B2%E6%9F%93%E7%BB%93%E6%9E%9C%E7%9A%84%E4%B8%A4%E7%A7%8D%E4%BD%BF%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="toc-number">2.1.</span> <span class="toc-text">渲染结果的两种使用方式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E5%AD%90%E7%89%A9%E4%BD%93%EF%BC%88SoftMaskable%EF%BC%89%E7%9A%84%E6%B8%B2%E6%9F%93%E6%B5%81%E7%A8%8B"><span class="toc-number">3.</span> <span class="toc-text">三、子物体（SoftMaskable）的渲染流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82%E4%B8%8E%E4%BC%98%E5%8C%96"><span class="toc-number">4.</span> <span class="toc-text">四、实现细节与优化</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E5%B8%A7%E7%BC%93%E5%AD%98%EF%BC%88FrameCache%EF%BC%89"><span class="toc-number">4.1.</span> <span class="toc-text">1. 帧缓存（FrameCache）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-VR-%E7%AB%8B%E4%BD%93%E8%A7%86%E8%A7%92%E6%94%AF%E6%8C%81"><span class="toc-number">4.2.</span> <span class="toc-text">2. VR 立体视角支持</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-UGUI-%E8%84%8F%E6%A0%87%E8%AE%B0%E6%8E%A5%E5%85%A5"><span class="toc-number">4.3.</span> <span class="toc-text">3. UGUI 脏标记接入</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-%E6%89%A9%E5%B1%95%E6%96%B9%E6%B3%95"><span class="toc-number">4.4.</span> <span class="toc-text">4. 扩展方法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E6%80%BB%E7%BB%93"><span class="toc-number">5.</span> <span class="toc-text">五、总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GitHub图床搭建"/></a><div class="content"><a class="title" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建">GitHub图床搭建</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于Hexo + GitHub Page的博客搭建碎碎念"/></a><div class="content"><a class="title" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念">基于Hexo + GitHub Page的博客搭建碎碎念</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++ Learning [持续更新中]"/></a><div class="content"><a class="title" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]">C++ Learning [持续更新中]</a><time datetime="2026-07-17T10:36:27.715Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— ScrollRect 组件"/></a><div class="content"><a class="title" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件">UGUI 源码剖析 —— ScrollRect 组件</a><time datetime="2026-07-17T00:00:00.000Z" title="Created 2026-07-17 00:00:00">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— Selectable 组件"/></a><div class="content"><a class="title" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件">UGUI 源码剖析 —— Selectable 组件</a><time datetime="2026-07-15T00:00:00.000Z" title="Created 2026-07-15 00:00:00">2026-07-15</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Avywenna</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><div class="js-pjax"></div><div class="aplayer no-destroy" data-id="17791700195" data-server="netease" data-type="playlist" data-fixed="true" data-autoplay="true"> </div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      false
+        ? pjax.loadUrl('/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

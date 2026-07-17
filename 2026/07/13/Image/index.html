@@ -1,0 +1,561 @@
+<!DOCTYPE html><html lang="zh" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>UGUI 源码剖析 —— Image 组件 | Welcome</title><meta name="author" content="Avywenna"><meta name="copyright" content="Avywenna"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta name="description" content="深入理解 UGUI 中 Image 组件的渲染机制与网格生成逻辑">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UGUI 源码剖析 —— Image 组件">
+<meta property="og:url" content="https://avvywenna.github.io/2026/07/13/Image/index.html">
+<meta property="og:site_name" content="Welcome">
+<meta property="og:description" content="深入理解 UGUI 中 Image 组件的渲染机制与网格生成逻辑">
+<meta property="og:locale">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg">
+<meta property="article:published_time" content="2026-07-13T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-13T10:13:08.000Z">
+<meta property="article:author" content="Avywenna">
+<meta property="article:tag" content="Image">
+<meta property="article:tag" content="UGUI">
+<meta property="article:tag" content="Unity">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "UGUI 源码剖析 —— Image 组件",
+  "url": "https://avvywenna.github.io/2026/07/13/Image/",
+  "image": "https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg",
+  "datePublished": "2026-07-13T00:00:00.000Z",
+  "dateModified": "2026-07-13T10:13:08.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Avywenna",
+      "url": "https://avvywenna.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/"><link rel="canonical" href="https://avvywenna.github.io/2026/07/13/Image/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'UGUI 源码剖析 —— Image 组件',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.1"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Welcome</span></a><a class="nav-page-title" href="/"><span class="site-name">UGUI 源码剖析 —— Image 组件</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">UGUI 源码剖析 —— Image 组件</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-07-13T00:00:00.000Z" title="Created 2026-07-13 00:00:00">2026-07-13</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-07-13T10:13:08.000Z" title="Updated 2026-07-13 10:13:08">2026-07-13</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/">Unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/UGUI/">UGUI</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="一、Image-的继承体系与接口"><a href="#一、Image-的继承体系与接口" class="headerlink" title="一、Image 的继承体系与接口"></a>一、Image 的继承体系与接口</h2><p><code>Image</code> 首先是一个 <code>Graphic</code>，因此它会参与到 UGUI 的统一重建流程（<code>CanvasUpdateRegistry</code> → <code>PerformUpdate</code> → <code>OnPopulateMesh</code>）。除此之外，它还通过继承和实现多个接口获得了额外的能力：</p>
+<table>
+<thead>
+<tr>
+<th>基类 &#x2F; 接口</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>MaskableGraphic</code></td>
+<td>支持 <code>RectMask2D</code> 和 <code>Mask</code> 的裁剪效果</td>
+</tr>
+<tr>
+<td><code>ILayoutElement</code></td>
+<td>参与布局系统的自动尺寸计算（<code>CalculateLayoutInput</code>、<code>minWidth</code>&#x2F;<code>preferredWidth</code> 等）</td>
+</tr>
+<tr>
+<td><code>ICanvasRaycastFilter</code></td>
+<td>支持基于像素透明度的精确点击过滤</td>
+</tr>
+<tr>
+<td><code>ISerializationCallbackReceiver</code></td>
+<td>处理序列化回调（如 Sprite 修改后的脏标记触发）</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="二、核心成员解析"><a href="#二、核心成员解析" class="headerlink" title="二、核心成员解析"></a>二、核心成员解析</h2><h3 id="1-sprite、overrideSprite-与-activeSprite"><a href="#1-sprite、overrideSprite-与-activeSprite" class="headerlink" title="1. sprite、overrideSprite 与 activeSprite"></a>1. sprite、overrideSprite 与 activeSprite</h3><p>这三个字段是 <code>Image</code> 中与 Sprite 引用相关的核心成员，它们之间的关系如下：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sprite</code></td>
+<td>Inspector 中显示的 <strong>Source Image</strong>，是 Sprite 的<strong>永久引用</strong></td>
+</tr>
+<tr>
+<td><code>overrideSprite</code></td>
+<td>脚本内成员，不在 Inspector 中显示。用于<strong>临时覆盖</strong>当前显示的 Sprite</td>
+</tr>
+<tr>
+<td><code>activeSprite</code></td>
+<td>只读属性，优先返回 <code>overrideSprite</code>，若为 <code>null</code> 则返回 <code>sprite</code></td>
+</tr>
+</tbody></table>
+<p><strong><code>activeSprite</code> 的实现逻辑：</strong></p>
+<blockquote>
+<p>返回 <code>overrideSprite ?? sprite</code></p>
+</blockquote>
+<p>这意味着：</p>
+<ul>
+<li>当 <code>overrideSprite != null</code> 时，Image 显示的是 <code>overrideSprite</code>，而非 <code>sprite</code></li>
+<li>将 <code>overrideSprite</code> 设为 <code>null</code> 后，Image 立即恢复显示 <code>sprite</code></li>
+<li>Image 中所有涉及 Sprite 的计算（网格生成、尺寸计算、射线检测等）都通过 <code>activeSprite</code> 进行</li>
+</ul>
+<p><strong>典型使用场景</strong>：按钮的悬停&#x2F;按下状态切换。通过修改 <code>overrideSprite</code> 实现临时图片替换，无需手动保存和恢复 <code>sprite</code> 的原始值。</p>
+<h3 id="2-m-AlphaHitTestMinimumThreshold"><a href="#2-m-AlphaHitTestMinimumThreshold" class="headerlink" title="2. m_AlphaHitTestMinimumThreshold"></a>2. m_AlphaHitTestMinimumThreshold</h3><p>这个字段用于实现<strong>基于像素透明度的精确点击过滤</strong>。当启用时，只有点击位置所在像素的 Alpha 值大于等于该阈值时，才会响应点击事件。</p>
+<p><strong>启用条件（缺一不可）：</strong></p>
+<ol>
+<li><code>activeSprite != null</code> 且 <code>activeSprite.texture != null</code></li>
+<li>Sprite 纹理<strong>未使用</strong> Crunch 压缩（<code>sprite.texture.isCrunched == false</code>）</li>
+<li>Sprite 纹理<strong>开启了可读写模式</strong>（<code>sprite.texture.isReadable == true</code>）</li>
+</ol>
+<blockquote>
+<p>为什么需要可读写模式？因为 <code>IsRaycastLocationValid</code> 需要调用 <code>texture.GetPixelBilinear</code> 采样像素 Alpha 值，而该 API 要求纹理可读。</p>
+</blockquote>
+<p><strong>性能注意事项</strong>：<code>GetPixelBilinear</code> 是 CPU 端的纹理采样操作，在每帧射线检测时都会被调用。如果场景中有大量启用了透明度过滤的 Image，可能会产生可观的 CPU 开销。</p>
+<h3 id="3-DisableSpriteOptimizations"><a href="#3-DisableSpriteOptimizations" class="headerlink" title="3. DisableSpriteOptimizations"></a>3. DisableSpriteOptimizations</h3><p>这个方法的字面意思是禁用对 Sprite 的优化。内部是将两个跳过相关的变量设置为 null。</p>
+<p>在默认情况下，当修改 sprite 的值时，Image 会检测新旧两个值是否一致。如果一致，那么 Image 就不会参与到 UGUI 的重绘流程，从而可以节省一些性能。</p>
+<p>通过调用这个方法，则可以强制让 Image 参与重绘流程。通过引用查找会发现唯一调用的地方是在 ImageEditor，即我们在 Inspector 上修改 sprite 时，会强制刷新。</p>
+<h3 id="4-pixelsPerUnit-系列字段"><a href="#4-pixelsPerUnit-系列字段" class="headerlink" title="4. pixelsPerUnit 系列字段"></a>4. pixelsPerUnit 系列字段</h3><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>来源</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>spritePixelsPerUnit</code></td>
+<td><code>activeSprite.pixelsPerUnit</code></td>
+<td>Sprite 自身设置的 PPU 值</td>
+</tr>
+<tr>
+<td><code>m_CachedReferencePixelsPerUnit</code></td>
+<td><code>canvas.referencePixelsPerUnit</code></td>
+<td>Canvas Scaler 上的 Reference PPU</td>
+</tr>
+<tr>
+<td><code>pixelsPerUnit</code></td>
+<td><code>spritePixelsPerUnit / m_CachedReferencePixelsPerUnit</code></td>
+<td>实际用于尺寸转换的系数</td>
+</tr>
+<tr>
+<td><code>multipliedPixelsPerUnit</code></td>
+<td><code>pixelsPerUnit * (m_TextureScale 或 1)</code></td>
+<td>用于九宫格&#x2F;平铺等模式的额外缩放系数</td>
+</tr>
+</tbody></table>
+<p>这些字段共同负责 <strong>Sprite 像素尺寸 → Unity 单位 → UI 像素尺寸</strong> 的转换：</p>
+<hr>
+<p><strong>关于Sprite的尺寸转换</strong></p>
+<p>当一个 Sprite 被渲染到屏幕上时，通常不会直接按原始像素大小渲染。由于设备分辨率不同，同一个 Sprite 如果要在不同的设备上做到相同的效果（如相对位置、相对大小）一致，那么就需要通过某些中间值进行转换适配，这个中间值就是 Unity 的单位。</p>
+<p>在 Sprite 的 Inspector 上提供了一个参数，名叫 Pixels Per Unit，直译为“像素每单位”。该值默认为 100，意味着假如 Sprite 的像素大小是 100x100，那么转换为 Unity 单位就是 1x1。</p>
+<p>然而这个 Unity 单位并不是最终渲染的尺寸，我们还需要通过 Canvas Scaler 上的 Reference Pixels Per Unit 来转换为 Transform 的尺寸。这个值默认也是 100。根据上述结果，如果再结合这个值进行转换，会发现 Image 如果使用了这个 Sprite，那么它的原始大小就是 Sprite 的原始像素大小。</p>
+<p>这里说的“原始大小”是指调用 <code>SetNativeSize</code> 时设置的大小。</p>
+<p>在 <code>SetNativeSize</code> 方法中，我们可以看到 Sprite 的像素尺寸是如何转换到 RectTransform 的尺寸的。以宽度举例，简单来说就是：</p>
+<blockquote>
+<p><code>w = activeSprite.rect.width / (spritePixelsPerUnit / m_CachedReferencePixelsPerUnit)</code></p>
+</blockquote>
+<p>其中 <code>activeSprite.rect.width</code> 是 Sprite 原始像素宽度，<code>spritePixelsPerUnit</code> 是在 Sprite 的 Inspector 上设置的参数，<code>m_CachedReferencePixelsPerUnit</code> 是从 Canvas Scaler 上设置的参数。</p>
+<hr>
+<p>关于 <code>pixelsPerUnit</code>：</p>
+<blockquote>
+<p>它的计算公式是：<code>pixelsPerUnit = spritePixelsPerUnit / m_CachedReferencePixelsPerUnit</code></p>
+</blockquote>
+<blockquote>
+<p>通过访问 <code>pixelsPerUnit</code> 可以方便地在任何地方将 Sprite 的尺寸转换到 RectTransform 的尺寸。</p>
+</blockquote>
+<p>关于 <code>spritePixelsPerUnit</code> 和 <code>m_CachedReferencePixelsPerUnit</code>：</p>
+<blockquote>
+<p>虽然这两个参数都可以影响 Sprite 的渲染尺寸，但是作用的范围并不一样。前者可以单独对一张 Sprite 进行调整，而后者是关系到整个 Canvas 内部所有 Image 的尺寸。</p>
+</blockquote>
+<p>关于 <code>multipliedPixelsPerUnit</code>：</p>
+<blockquote>
+<p>从字面意思可以看出是在上面的 <code>pixelsPerUnit</code> 上多了一个倍数，而这个倍数默认值是 1。这个成员通常作用于 Sprite 九宫格、拉伸、平铺等场景，会影响这些渲染方式的效果。</p>
+</blockquote>
+<h3 id="5-PreserveSpriteAspectRatio"><a href="#5-PreserveSpriteAspectRatio" class="headerlink" title="5. PreserveSpriteAspectRatio"></a>5. PreserveSpriteAspectRatio</h3><p>这个方法用于将 RectTransform 的宽高比调整到跟 Sprite 尺寸的宽高比一致，目的是让 Sprite 可以完整地在 Rect 内展示且不会被拉伸。入口受 <code>m_PreserveAspect</code> 的控制，该值默认为 false，即默认情况下不会自行调整 RectTransform 的尺寸。</p>
+<h3 id="6-GetDrawingDimensions"><a href="#6-GetDrawingDimensions" class="headerlink" title="6. GetDrawingDimensions"></a>6. GetDrawingDimensions</h3><p>这个方法用于获取在剔除了 Sprite 四周留空区域（padding）之后的有效绘制区域。这个区域通过四条边在坐标系中的位置来表示，分别为（左边界、上边界、右边界、下边界）。</p>
+<p>利用这种表示方式，通过两两相交即可得到这个区域的四个顶点。这个设计在网格填充的一些计算中起到比较重要的作用，特别是在 Simple 和 Sliced 模式中。</p>
+<h2 id="三、OnPopulateMesh-——-核心网格填充逻辑"><a href="#三、OnPopulateMesh-——-核心网格填充逻辑" class="headerlink" title="三、OnPopulateMesh —— 核心网格填充逻辑"></a>三、OnPopulateMesh —— 核心网格填充逻辑</h2><p>不只是 Image，在自己实现 OnPopulateMesh 时，需要给 VertexHelper 填充顶点数据。顶点数据包括顶点坐标、顶点颜色、UV 纹理坐标以及三角形数据。如果直接将 VertexHelper 清空掉然后什么都不做，就不会渲染任何东西（但是不会影响射线检测和事件接收）。</p>
+<p>对于 Image 来说，它在 OnPopulateMesh 中主要根据 <code>Image.type</code> 调用多个不同的网格填充方式来完成顶点数据处理。下面逐一介绍。</p>
+<h3 id="1-Simple（默认）"><a href="#1-Simple（默认）" class="headerlink" title="1.Simple（默认）"></a>1.Simple（默认）</h3><p>这是默认的显示方式，Sprite 会以原始效果渲染，但是会被拉伸或挤压。</p>
+<p>根据 <code>useSpriteMesh</code> 变量的值，再选择不同的 API 路径。</p>
+<h4 id="路径一：useSpriteMesh-false（默认）"><a href="#路径一：useSpriteMesh-false（默认）" class="headerlink" title="路径一：useSpriteMesh &#x3D;&#x3D; false（默认）"></a>路径一：useSpriteMesh &#x3D;&#x3D; false（默认）</h4><p>调用 <code>GenerateSimpleSprite</code> 进行顶点填充。这个方法的逻辑比较简单：</p>
+<ul>
+<li>根据 <code>GetDrawingDimensions</code> 的结果生成四个顶点</li>
+<li>通过 <code>sprite.GetOuterUVs()</code> 获得 Sprite 的纹理空间坐标，同步设置给顶点数据</li>
+<li>用这四个顶点的索引绑定两个三角形，完成最简单的顶点填充处理</li>
+</ul>
+<h4 id="路径二：useSpriteMesh-true"><a href="#路径二：useSpriteMesh-true" class="headerlink" title="路径二：useSpriteMesh &#x3D;&#x3D; true"></a>路径二：useSpriteMesh &#x3D;&#x3D; true</h4><p>调用 <code>GenerateSprite</code> 来填充顶点。此时填充的顶点坐标跟纹理坐标不再直接使用 RectTransform 的绘制区域，而是使用 Sprite 的 Mesh 提供的 vertices 和 uv。</p>
+<p>不过 Mesh 的顶点坐标不能直接当作 Image 坐标系下的坐标，需要经过一些转换：</p>
+<p>对于顶点 <code>vertices[i]</code>，它的坐标 (x, y) 是相对于 <code>spriteBounds</code>（即 <code>activeSprite.bounds.size</code>）存在的。而通过 <code>GetPixelAdjustedRect()</code> 可以得到表示 Image 的绘制区域的 Rect。因此可以得出：</p>
+<blockquote>
+<p>vertices[i] 对应的顶点坐标的 x 分量 &#x3D; <code>(vertices[i].x / spriteBounds.x) * rect.width</code></p>
+<p>y 分量同理。</p>
+</blockquote>
+<p>另外，由于还需要将 Sprite 的 pivot 与 RectTransform 的 pivot 对齐，代码中会根据这两个轴心的差异计算出一个 Offset，这个 Offset 会被应用在上面计算得到的坐标分量上。</p>
+<p>对于纹理坐标，直接应用 Mesh 提供的数据即可。</p>
+<blockquote>
+<p>关于 Rect：Rect 是通过原点位置 (x, y) 和 width、height 来在坐标系中确定一个矩形区域的表达方式。其中原点是 Rect 的左下角，先确定原点，然后再按 width 和 height 进行延展就能确定一个矩形。</p>
+</blockquote>
+<blockquote>
+<p>关于 <code>useSpriteMesh</code> 在实际项目中几乎不被使用，因为其顶点数量可能远多于 4 个，会破坏合批效率。Unity 保留此选项主要是为了兼容旧版本 Sprite 的导入方式。</p>
+</blockquote>
+<h3 id="2-Sliced（九宫格）"><a href="#2-Sliced（九宫格）" class="headerlink" title="2.Sliced（九宫格）"></a>2.Sliced（九宫格）</h3><p>此模式通过 <code>GenerateSlicedSprite</code> 生成网格，适用于边框不变形、中心区域拉伸的 UI 元素（如按钮背景、对话框）。</p>
+<p><strong>核心流程：</strong></p>
+<ol>
+<li>获取 Sprite 的 <code>border</code>（左、上、右、下四条边的位置）</li>
+<li>根据 <code>border</code> 和 Image 的绘制区域，计算出 <strong>9 个格子的边界坐标</strong></li>
+<li>计算每个格子对应的 UV 坐标（由 <code>OuterUVs</code>和 <code>InnerUVs</code> 组合而成）</li>
+<li>对 9 个格子分别调用 <code>AddQuad</code>，每个格子生成 4 个顶点和 2 个三角形</li>
+</ol>
+<blockquote>
+<p>九宫格的 9 个格子中，<strong>四个角</strong>保持原始尺寸不变，<strong>四条边</strong>在对应方向上拉伸，<strong>中心区域</strong>在两个方向上拉伸。</p>
+</blockquote>
+<h3 id="3-Tiled（平铺）"><a href="#3-Tiled（平铺）" class="headerlink" title="3.Tiled（平铺）"></a>3.Tiled（平铺）</h3><p>这种模式下，通过 <code>GenerateTiledSprite</code> 来为平铺模式的 Sprite 生成顶点数据。</p>
+<p>在使用这个模式时，Sprite 通过自我重复的方式来填充 Image 的区域。对于有没有 border 的情况，处理方式会不一样（即是否切了九宫格）：</p>
+<ul>
+<li>如果切了九宫格，重复的部分就是九宫格的内部区域</li>
+<li>如果没有切，就是对完整的 Sprite 进行重复</li>
+</ul>
+<p>这里的“重复”具体是什么意思呢？其实就是用 Image 的尺寸除以重复部分的尺寸，得到应该重复的个数。例如 Image 宽 1000，而重复区域的宽是 100，那么在横坐标方向上就会重复 10 次，纵坐标方向同理。</p>
+<p>每重复一次，就是相当于在 VertexHelper 中填充 4 个顶点（两个三角形），这 4 个顶点形成的区域就会将重复区域绘制出来。可以发现，重复次数越多，VertexHelper 中新增的顶点数量也会越多。</p>
+<p><strong>顶点数量限制：</strong></p>
+<p>为了防止顶点数过多导致性能问题，Unity 在生成 Tiled 网格时会检查总顶点数。如果超过 <strong>65000</strong>（<code>USHORT_MAX</code>），会强制调整 Tile 尺寸使顶点数在限制范围内。</p>
+<blockquote>
+<p>在移动端项目中，Tiled 模式应谨慎使用，因为大量顶点会显著增加 CPU 和 GPU 开销。如需大面积重复背景，建议改用 Shader 方式实现。</p>
+</blockquote>
+<h3 id="4-Filled（填充）"><a href="#4-Filled（填充）" class="headerlink" title="4.Filled（填充）"></a>4.Filled（填充）</h3><p>这种模式下，又细分为了 Horizontal、Vertical、Radial90、Radial180、Radial360 这五种填充类型。虽然可选项有五种，但是归根结底可以分为两类。</p>
+<h4 id="线性填充（Horizontal-Vertical）"><a href="#线性填充（Horizontal-Vertical）" class="headerlink" title="线性填充（Horizontal &#x2F; Vertical）"></a>线性填充（Horizontal &#x2F; Vertical）</h4><p><code>FillMethod.Horizontal</code> 和 <code>FillMethod.Vertical</code> 是最简单的填充方式：</p>
+<ul>
+<li>根据 <code>FillAmount</code> 在横向或纵向上插值顶点的 <strong>位置</strong> 和 <strong>UV</strong></li>
+<li>支持 <code>FillOrigin</code>（从哪一侧开始填充）和 <code>FillClockwise</code>（是否翻转）</li>
+</ul>
+<h4 id="扇形填充（Radial-90-180-360）"><a href="#扇形填充（Radial-90-180-360）" class="headerlink" title="扇形填充（Radial 90 &#x2F; 180 &#x2F; 360）"></a>扇形填充（Radial 90 &#x2F; 180 &#x2F; 360）</h4><p>这是 <code>Image</code> 中最复杂的网格生成逻辑，表面上是围绕不同的原点进行扇形切割，其核心思想是 <strong>“将扇形拆分为多个 90° 的单元”</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>组成</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Radial90</code></td>
+<td>1 个 90° 单元</td>
+<td>基础单元</td>
+</tr>
+<tr>
+<td><code>Radial180</code></td>
+<td>2 个 90° 单元拼接</td>
+<td>水平或垂直镜像</td>
+</tr>
+<tr>
+<td><code>Radial360</code></td>
+<td>4 个 90° 单元拼接</td>
+<td>完整圆环</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>这种叠加方式有效的前提是对 <code>Radial90</code> 本身的扇形切割处理简单有效，在此之上的叠加只需要根据顺序给定不同的坐标范围就可以了</p>
+</blockquote>
+<p><strong><code>RadialCut</code> 方法解析：</strong></p>
+<p><code>RadialCut</code> 是扇形填充的核心算法，接受以下参数：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>xy</code></td>
+<td>四个顶点的坐标数组（顺序：左下、左上、右上、右下）</td>
+</tr>
+<tr>
+<td><code>cos</code></td>
+<td><code>Mathf.Cos(fillAmount * 90°)</code></td>
+</tr>
+<tr>
+<td><code>sin</code></td>
+<td><code>Mathf.Sin(fillAmount * 90°)</code></td>
+</tr>
+<tr>
+<td><code>invert</code></td>
+<td>是否翻转旋转方向</td>
+</tr>
+<tr>
+<td><code>corner</code></td>
+<td>轴心点的索引（0&#x3D;左下，1&#x3D;左上，2&#x3D;右上，3&#x3D;右下）</td>
+</tr>
+</tbody></table>
+<p><strong>顶点演化过程（假设给定的区域是正方形，以左下角为轴心，顺时针旋转为例）：</strong></p>
+<ol>
+<li><p>当旋转轴从零开始旋转时，轴会先跟上边界相交，并且随着交点右移，被绘制的图形会慢慢变多，直到交点到达对角顶点。在这个过程中，被绘制区域一共由四个顶点组成，按逆时针方向数分别为<strong>三角形</strong>：原点 → 左上顶点 → 上边界交点 → 上边界交点（两个交点退化为同一个）。</p>
+<p> 这里旋转轴跟上边界的交点虽然只有一个，但是实际上是原始矩形的右上角和右下角由于旋转轴跟边界相交退化而来的，这两个顶点退化为同一个交点。</p>
+<p> 该交点的横坐标通过某种方式从左边界和右边界横坐标中进行插值得到，而纵坐标则固定为上边界的位置。</p>
+</li>
+<li><p>随着 <code>fillAmount</code> 继续增加，旋转轴会来到跟右边界相交，此时图形已经绘制了超过一半的区域。此时绘制图形顶点变为<strong>四边形</strong>：原点 → 左上顶点 → 右上顶点 → 右边界交点。</p>
+<p> 此时只有原来的右下顶点退化成了交点。交点的横坐标固定为右边界位置，纵坐标则是上边界跟下边界进行插值。</p>
+</li>
+<li><p>最后当 <code>fillAmount = 1</code> 时，图形的四个顶点则完全是原矩形的顶点，此时图形完全被绘制出来。</p>
+</li>
+</ol>
+<p><strong>插值的计算方式：</strong></p>
+<p>还记得方法参数中给了 <code>cos</code> 和 <code>sin</code> 吗？代码中正是通过这两个值来进行插值计算。</p>
+<ul>
+<li><p>当 <code>sin &gt; cos</code> 时，这意味着在正方形区域中旋转轴划过的角度大于 45°，此时旋转轴跟右边界相交。交点的纵坐标 y &#x3D; <code>Mathf.Lerp(y0, y2, cos / sin)</code></p>
+<p>其中 y0 表示下边界，y2 上边界。过渡值 <code>r = cos / sin</code>。随着角度继续增大，<code>cos</code> 跟 <code>sin</code> 的比值越来越小，y 会逐渐从<code>上边界</code>靠近<code>下边界</code>，反映到交点上就是从对角顶点逐渐移动到它的下一个顶点。</p>
+</li>
+<li><p>当 <code>cos &gt; sin</code> 时，交点的计算方式同理（与上边界相交，横坐标插值）。</p>
+</li>
+</ul>
+<blockquote>
+<p><strong>注意</strong>：上述推导基于<strong>正方形</strong>假设。在非正方形矩形中，旋转轴扫过的角度与 <code>FillAmount</code> 不是线性关系，但由于代码中的插值计算是在正方形假设下进行的，因此实际效果会略有偏差。这是 UGUI 的一个已知设计取舍。</p>
+</blockquote>
+<p>注意到，随着 <code>fillAmount</code> 匀速变化，旋转轴转过的角度在正方形内是匀速的。例如当 <code>fillAmount = 0.5</code> 时，扫过的角度是 45°。然而在非正方形中，实际扫过的角度却不是 45°。</p>
+<p>代码的这个做法可以想象为：程序先基于正方形确定交点位置，然后将正方形拉伸到原来的形状—— 当然实际上代码并没有进行这样的操作，只不过这种理解方式可以帮助解释最终效果上的一些偏差。</p>
+<blockquote>
+<p>如为什么fillAmount&#x3D;0.5时，图形不是正好切开一半等等</p>
+</blockquote>
+<p><strong>关于轴心点的通用化</strong>：上面将原点假设为矩形左下角。但是单论 Radial90 本身就有 4 个不同方向的顶点。回顾上面四个顶点的假设，其实完全可以换一种表述：</p>
+<ul>
+<li>原点：给定轴心点，在上面假设为左下角，记为 <code>i0</code></li>
+<li>左上顶点：表述为原点的下一个顶点，记为 <code>(i0 + 1) % 4</code></li>
+<li>右上顶点：表述为原点的对角顶点，记为 <code>(i0 + 2) % 4</code></li>
+<li>右下顶点：表述为原点的上一个顶点，记为 <code>(i0 + 3) % 4</code></li>
+</ul>
+<p>通过这种表述转换，以及简单的索引计算，就可以将上述的流程通用到所有情况的顶点。</p>
+<p>最终，不管是 Radial90、Radial180 还是 Radial360，本质上都是划分为多个矩形的 90° 扇形切割，然后根据划分情况给定不同的顶点坐标、原点等，从而实现完整的扇形切割效果。</p>
+<h2 id="四、总结"><a href="#四、总结" class="headerlink" title="四、总结"></a>四、总结</h2><p>本文对 Image 中的重要成员进行了介绍，并且了解了 Image 是如何进行网格填充的，对后续自定义 Graphic 的绘制方式提供了参考。</p>
+<table>
+<thead>
+<tr>
+<th>核心概念</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sprite 引用</td>
+<td><code>activeSprite</code> 优先返回 <code>overrideSprite</code>，其次返回 <code>sprite</code></td>
+</tr>
+<tr>
+<td>透明点击过滤</td>
+<td>通过 <code>m_AlphaHitTestMinimumThreshold</code> 实现，需纹理可读且未使用 Crunch 压缩</td>
+</tr>
+<tr>
+<td>尺寸转换</td>
+<td><code>SetNativeSize()</code> 计算公式涉及 <code>spritePixelsPerUnit</code> 和 <code>canvas.referencePixelsPerUnit</code></td>
+</tr>
+<tr>
+<td>Simple 模式</td>
+<td>默认生成 4 个顶点；<code>useSpriteMesh = true</code> 时使用 Sprite 自带网格</td>
+</tr>
+<tr>
+<td>Sliced 模式</td>
+<td>九宫格生成 9 个格子，边框不变形</td>
+</tr>
+<tr>
+<td>Tiled 模式</td>
+<td>平铺生成大量顶点，受 65000 顶点限制</td>
+</tr>
+<tr>
+<td>Filled 模式</td>
+<td>线性填充和扇形填充（Radial 90&#x2F;180&#x2F;360），核心算法为 <code>RadialCut</code></td>
+</tr>
+</tbody></table>
+<hr>
+<blockquote>
+<p>📝 <strong>写在最后</strong><br>理解 Image 的网格生成逻辑，不仅能在实际项目中根据需要选择合适的渲染模式，也为自定义 Graphic 组件提供了参考。特别是扇形填充的切割算法，展示了对顶点数据进行动态控制的思路，在制作技能冷却、进度条等 UI 元素时非常有用。</p>
+</blockquote>
+<hr>
+<p><em>本文为个人学习总结，如有不准确之处，欢迎指正交流。</em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io">Avywenna</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io/2026/07/13/Image/">https://avvywenna.github.io/2026/07/13/Image/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/UGUI/">UGUI</a><a class="post-meta__tags" href="/tags/Image/">Image</a></div><div class="post-share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/07/14/RawImage/" title="UGUI 源码剖析 —— RawImage 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">UGUI 源码剖析 —— RawImage 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 RawImage 组件的设计定位与实现细节</div></div></div></a><a class="pagination-related" href="/2026/07/10/StandaloneInputModule/" title="UGUI 源码剖析 —— StandaloneInputModule"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">UGUI 源码剖析 —— StandaloneInputModule</div></div><div class="info-2"><div class="info-item-1">StandaloneInputModule</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/07/08/UGUI%20Event%20System/" title="UGUI 源码剖析 —— EventSystem 事件系统"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-08</div><div class="info-item-2">UGUI 源码剖析 —— EventSystem 事件系统</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 事件系统的调度机制与源码实现</div></div></div></a><a class="pagination-related" href="/2026/07/01/Graphic/" title="UGUI 源码剖析 —— Graphic 核心机制"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-01</div><div class="info-item-2">UGUI 源码剖析 —— Graphic 核心机制</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Graphic 类的底层原理与性能优化要点</div></div></div></a><a class="pagination-related" href="/2026/07/04/ClipperRegistry/" title="UGUI 源码剖析 —— ClipperRegistry 与 RectMask2D"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-04</div><div class="info-item-2">UGUI 源码剖析 —— ClipperRegistry 与 RectMask2D</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 ClipperRegistry 的裁剪调度机制与 RectMask2D 实现原理</div></div></div></a><a class="pagination-related" href="/2026/07/14/RawImage/" title="UGUI 源码剖析 —— RawImage 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-14</div><div class="info-item-2">UGUI 源码剖析 —— RawImage 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 RawImage 组件的设计定位与实现细节</div></div></div></a><a class="pagination-related" href="/2026/07/02/UGUI%20Batches/" title="Unity UGUI 合批机制深度解析"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-02</div><div class="info-item-2">Unity UGUI 合批机制深度解析</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 的合批原理、深度计算机制与实用优化策略</div></div></div></a><a class="pagination-related" href="/2026/07/02/CanvasUpdateRegistry/" title="UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-02</div><div class="info-item-2">UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 CanvasUpdateRegistry 的调度机制与源码细节</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/icon.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Avywenna</div><div class="author-info-description">転がる岩、君に朝が降る</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">17</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Avvywenna"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Avvywenna" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="https://space.bilibili.com/237232911" target="_blank" title="BiliBili"><i class="fab fa-bilibili" style="color: #fb7299;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">hi~ 是迷路的小猫咪吗</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81Image-%E7%9A%84%E7%BB%A7%E6%89%BF%E4%BD%93%E7%B3%BB%E4%B8%8E%E6%8E%A5%E5%8F%A3"><span class="toc-number">1.</span> <span class="toc-text">一、Image 的继承体系与接口</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E6%A0%B8%E5%BF%83%E6%88%90%E5%91%98%E8%A7%A3%E6%9E%90"><span class="toc-number">2.</span> <span class="toc-text">二、核心成员解析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-sprite%E3%80%81overrideSprite-%E4%B8%8E-activeSprite"><span class="toc-number">2.1.</span> <span class="toc-text">1. sprite、overrideSprite 与 activeSprite</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-m-AlphaHitTestMinimumThreshold"><span class="toc-number">2.2.</span> <span class="toc-text">2. m_AlphaHitTestMinimumThreshold</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-DisableSpriteOptimizations"><span class="toc-number">2.3.</span> <span class="toc-text">3. DisableSpriteOptimizations</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-pixelsPerUnit-%E7%B3%BB%E5%88%97%E5%AD%97%E6%AE%B5"><span class="toc-number">2.4.</span> <span class="toc-text">4. pixelsPerUnit 系列字段</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-PreserveSpriteAspectRatio"><span class="toc-number">2.5.</span> <span class="toc-text">5. PreserveSpriteAspectRatio</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-GetDrawingDimensions"><span class="toc-number">2.6.</span> <span class="toc-text">6. GetDrawingDimensions</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81OnPopulateMesh-%E2%80%94%E2%80%94-%E6%A0%B8%E5%BF%83%E7%BD%91%E6%A0%BC%E5%A1%AB%E5%85%85%E9%80%BB%E8%BE%91"><span class="toc-number">3.</span> <span class="toc-text">三、OnPopulateMesh —— 核心网格填充逻辑</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Simple%EF%BC%88%E9%BB%98%E8%AE%A4%EF%BC%89"><span class="toc-number">3.1.</span> <span class="toc-text">1.Simple（默认）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%B7%AF%E5%BE%84%E4%B8%80%EF%BC%9AuseSpriteMesh-false%EF%BC%88%E9%BB%98%E8%AE%A4%EF%BC%89"><span class="toc-number">3.1.1.</span> <span class="toc-text">路径一：useSpriteMesh &#x3D;&#x3D; false（默认）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%B7%AF%E5%BE%84%E4%BA%8C%EF%BC%9AuseSpriteMesh-true"><span class="toc-number">3.1.2.</span> <span class="toc-text">路径二：useSpriteMesh &#x3D;&#x3D; true</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Sliced%EF%BC%88%E4%B9%9D%E5%AE%AB%E6%A0%BC%EF%BC%89"><span class="toc-number">3.2.</span> <span class="toc-text">2.Sliced（九宫格）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Tiled%EF%BC%88%E5%B9%B3%E9%93%BA%EF%BC%89"><span class="toc-number">3.3.</span> <span class="toc-text">3.Tiled（平铺）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Filled%EF%BC%88%E5%A1%AB%E5%85%85%EF%BC%89"><span class="toc-number">3.4.</span> <span class="toc-text">4.Filled（填充）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BA%BF%E6%80%A7%E5%A1%AB%E5%85%85%EF%BC%88Horizontal-Vertical%EF%BC%89"><span class="toc-number">3.4.1.</span> <span class="toc-text">线性填充（Horizontal &#x2F; Vertical）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%89%87%E5%BD%A2%E5%A1%AB%E5%85%85%EF%BC%88Radial-90-180-360%EF%BC%89"><span class="toc-number">3.4.2.</span> <span class="toc-text">扇形填充（Radial 90 &#x2F; 180 &#x2F; 360）</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E6%80%BB%E7%BB%93"><span class="toc-number">4.</span> <span class="toc-text">四、总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GitHub图床搭建"/></a><div class="content"><a class="title" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建">GitHub图床搭建</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于Hexo + GitHub Page的博客搭建碎碎念"/></a><div class="content"><a class="title" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念">基于Hexo + GitHub Page的博客搭建碎碎念</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++ Learning [持续更新中]"/></a><div class="content"><a class="title" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]">C++ Learning [持续更新中]</a><time datetime="2026-07-17T10:36:27.715Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— ScrollRect 组件"/></a><div class="content"><a class="title" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件">UGUI 源码剖析 —— ScrollRect 组件</a><time datetime="2026-07-17T00:00:00.000Z" title="Created 2026-07-17 00:00:00">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— Selectable 组件"/></a><div class="content"><a class="title" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件">UGUI 源码剖析 —— Selectable 组件</a><time datetime="2026-07-15T00:00:00.000Z" title="Created 2026-07-15 00:00:00">2026-07-15</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Avywenna</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><div class="js-pjax"></div><div class="aplayer no-destroy" data-id="17791700195" data-server="netease" data-type="playlist" data-fixed="true" data-autoplay="true"> </div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      false
+        ? pjax.loadUrl('/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

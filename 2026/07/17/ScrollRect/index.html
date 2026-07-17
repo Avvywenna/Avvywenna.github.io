@@ -1,0 +1,429 @@
+<!DOCTYPE html><html lang="zh" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>UGUI 源码剖析 —— ScrollRect 组件 | Welcome</title><meta name="author" content="Avywenna"><meta name="copyright" content="Avywenna"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta name="description" content="深入理解 UGUI 中 ScrollRect 的布局、交互与物理模拟机制">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UGUI 源码剖析 —— ScrollRect 组件">
+<meta property="og:url" content="https://avvywenna.github.io/2026/07/17/ScrollRect/index.html">
+<meta property="og:site_name" content="Welcome">
+<meta property="og:description" content="深入理解 UGUI 中 ScrollRect 的布局、交互与物理模拟机制">
+<meta property="og:locale">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg">
+<meta property="article:published_time" content="2026-07-17T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-17T10:35:48.000Z">
+<meta property="article:author" content="Avywenna">
+<meta property="article:tag" content="ScrollRect">
+<meta property="article:tag" content="UGUI">
+<meta property="article:tag" content="Unity">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "UGUI 源码剖析 —— ScrollRect 组件",
+  "url": "https://avvywenna.github.io/2026/07/17/ScrollRect/",
+  "image": "https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg",
+  "datePublished": "2026-07-17T00:00:00.000Z",
+  "dateModified": "2026-07-17T10:35:48.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Avywenna",
+      "url": "https://avvywenna.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/"><link rel="canonical" href="https://avvywenna.github.io/2026/07/17/ScrollRect/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'UGUI 源码剖析 —— ScrollRect 组件',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.1"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Welcome</span></a><a class="nav-page-title" href="/"><span class="site-name">UGUI 源码剖析 —— ScrollRect 组件</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">UGUI 源码剖析 —— ScrollRect 组件</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-07-17T00:00:00.000Z" title="Created 2026-07-17 00:00:00">2026-07-17</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-07-17T10:35:48.000Z" title="Updated 2026-07-17 10:35:48">2026-07-17</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/">Unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/UGUI/">UGUI</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="一、ScrollRect-是什么？"><a href="#一、ScrollRect-是什么？" class="headerlink" title="一、ScrollRect 是什么？"></a>一、ScrollRect 是什么？</h2><p><code>ScrollRect</code> 是 UGUI 中用于实现<strong>滚动视图</strong>的核心组件。它提供了三个核心功能：</p>
+<ol>
+<li><strong>滑动条的布局支持</strong>：根据内容尺寸动态显示&#x2F;隐藏滚动条，并自动调整视口（Viewport）尺寸</li>
+<li><strong>交互事件处理</strong>：响应拖拽、滚轮等输入</li>
+<li><strong>物理模拟</strong>：实现惯性滑动、回弹（Elastic）效果</li>
+</ol>
+<h2 id="二、布局重建流程"><a href="#二、布局重建流程" class="headerlink" title="二、布局重建流程"></a>二、布局重建流程</h2><p><code>ScrollRect</code> 同时实现了 <code>ICanvasElement</code>、<code>ILayoutElement</code> 和 <code>ILayoutGroup</code> 接口，在 UGUI 的布局系统中承担了双重角色。</p>
+<h3 id="1-ICanvasElement-Rebuild"><a href="#1-ICanvasElement-Rebuild" class="headerlink" title="1. ICanvasElement.Rebuild"></a>1. ICanvasElement.Rebuild</h3><p><code>ScrollRect</code> 通过 <code>Rebuild</code> 方法参与 <code>CanvasUpdateRegistry</code> 的统一重建流程：</p>
+<ul>
+<li><strong><code>Prelayout</code> 阶段</strong>：缓存滚动条状态相关的数据（是否可见、尺寸等）</li>
+<li><strong><code>PostLayout</code> 阶段</strong>：更新自身包围盒数据、滚动条的位置和大小</li>
+</ul>
+<h3 id="2-ILayoutElement（不参与布局计算）"><a href="#2-ILayoutElement（不参与布局计算）" class="headerlink" title="2. ILayoutElement（不参与布局计算）"></a>2. ILayoutElement（不参与布局计算）</h3><p><code>ScrollRect</code> 虽然实现了 <code>ILayoutElement</code> 接口，但实际上并没有提供有效的布局数据：</p>
+<ul>
+<li><code>CalculateLayoutInputHorizontal</code> &#x2F; <code>CalculateLayoutInputVertical</code>：空实现</li>
+<li><code>minWidth</code> &#x2F; <code>preferredWidth</code> 等属性：均返回 <code>-1</code></li>
+</ul>
+<p>这意味着 <code>ScrollRect</code> <strong>不会主动影响父布局容器的尺寸决策</strong>。它的尺寸通常由父布局容器决定，或者由用户手动设置。</p>
+<h3 id="3-ILayoutGroup（核心布局逻辑）"><a href="#3-ILayoutGroup（核心布局逻辑）" class="headerlink" title="3. ILayoutGroup（核心布局逻辑）"></a>3. ILayoutGroup（核心布局逻辑）</h3><p><code>ScrollRect</code> 作为布局容器，在 <code>SetLayoutHorizontal</code> 和 <code>SetLayoutVertical</code> 中实现了核心的布局逻辑，主要职责是<strong>根据滚动条的显示状态动态调整 Viewport 的尺寸</strong>。</p>
+<h4 id="SetLayoutHorizontal"><a href="#SetLayoutHorizontal" class="headerlink" title="SetLayoutHorizontal"></a>SetLayoutHorizontal</h4><p><code>SetLayoutHorizontal</code> 处理的是 <strong>Viewport 在滚动条显示状态影响下的尺寸调整</strong>。其处理流程可以概括为以下步骤：</p>
+<p><strong>第一步：更新缓存数据</strong></p>
+<p>调用 <code>UpdateCachedData</code>，更新当前滚动条的状态：</p>
+<ul>
+<li>水平滚动条是否动态显示（<code>m_HorizontalScrollbar != null &amp;&amp; m_HorizontalScrollbarVisibility == ScrollRect.ScrollbarVisibility.AutoHide</code>）</li>
+<li>垂直滚动条是否动态显示（<code>m_VerticalScrollbar != null &amp;&amp; m_VerticalScrollbarVisibility == ScrollRect.ScrollbarVisibility.AutoHide</code>）</li>
+<li>水平滚动条的尺寸（<code>m_HorizontalScrollbarWidth</code>）</li>
+<li>垂直滚动条的尺寸（<code>m_VerticalScrollbarWidth</code>）</li>
+<li>滚动条与 Viewport 之间的间距（<code>m_HSliderSpacing</code> &#x2F; <code>m_VSliderSpacing</code>）</li>
+</ul>
+<p><strong>第二步：让 Viewport 完全覆盖可用区域</strong></p>
+<p>将 Viewport 的 <code>anchorMin</code> 设为 <code>(0, 0)</code>，<code>anchorMax</code> 设为 <code>(1, 1)</code>，<code>sizeDelta</code> 设为 <code>Vector2.zero</code>。此时 Viewport 完全贴合父容器，没有为任何滚动条预留空间。</p>
+<blockquote>
+<p>为什么用 <code>sizeDelta</code> 而不是直接设置 <code>size</code>？因为 <code>anchorMin</code> 和 <code>anchorMax</code> 设置为 <code>(0,0,1,1)</code>，<code>sizeDelta</code> 的值表示<strong>包围盒与父容器边界的距离</strong>，默认描述的是包围盒的宽高。当 <code>sizeDelta = Vector2.zero</code> 时，表示完全贴合父容器；当 <code>sizeDelta.x &lt; 0</code> 时，表示在宽度上留出了空间。</p>
+</blockquote>
+<p><strong>第三步：第一次强制重建</strong></p>
+<p>调用 <code>LayoutRebuilder.ForceRebuildLayoutImmediate(content)</code>。因为 Viewport 尺寸变化后，其内部的 Content（以及 Content 内部的子元素）可能受到自动布局组件（如 <code>ContentSizeFitter</code>）的影响，尺寸会发生变化。这个调用确保在后续判断滚动条是否需要显示时，Content 的尺寸是<strong>最新的</strong>。</p>
+<p><strong>第四步：处理垂直滚动条的动态显示</strong></p>
+<p>如果满足显示条件（Content 的高度 &gt; Viewport 的高度，至少相差 <code>0.01</code>），则修改 Viewport 的 <code>sizeDelta.x</code> 减去垂直滚动条的宽度和间距（<code>m_VSliderWidth + m_VerticalScrollbarSpacing</code>），为垂直滚动条留出空间。</p>
+<p><strong>第五步：第二次强制重建</strong></p>
+<p>再次调用 <code>LayoutRebuilder.ForceRebuildLayoutImmediate(content)</code>。因为 Viewport 宽度减小后，Content 的宽高可能也会随之变化（如果 Content 上挂了自动布局组件），需要再次确认 Content 的最终尺寸。</p>
+<p><strong>第六步：处理水平滚动条的动态显示</strong></p>
+<p>如果满足显示条件（Content 的宽度 &gt; Viewport 的宽度，至少相差 <code>0.01</code>），则修改 Viewport 的 <code>sizeDelta.y</code> 减去水平滚动条的高度和间距（<code>m_HSliderHeight + m_HorizontalScrollbarSpacing</code>），为水平滚动条留出空间。</p>
+<p><strong>第七步：对垂直滚动条的兜底处理</strong></p>
+<p>这是一个边界情况：如果一开始 Content 的高度不足以触发垂直滚动条显示，但是在处理水平滚动条时，水平滚动条占用了 Viewport 的高度，可能导致 Viewport 高度变小，从而使得 Content 的高度 &gt; Viewport 的高度——此时垂直滚动条的条件被“触发”了。</p>
+<p>因此最后需要再检查一次垂直滚动条是否应该显示，如果应该显示但之前没有处理过，则再调整一次 Viewport 的宽度。</p>
+<blockquote>
+<p>简单理解：这个流程是在反复执行“让 Viewport 填满 → 检查是否需要滚动条 → 需要的话留出空间 → 再检查另一边是否也因此需要滚动条”的循环，直到所有滚动条的显示状态都确定下来。</p>
+</blockquote>
+<h4 id="SetLayoutVertical"><a href="#SetLayoutVertical" class="headerlink" title="SetLayoutVertical"></a>SetLayoutVertical</h4><p><code>SetLayoutVertical</code> 处理的是<strong>滚动条本身的尺寸调整</strong>：</p>
+<ul>
+<li>根据滚动条的显示状态，分别调整水平滚动条和垂直滚动条的 <code>RectTransform</code> 尺寸</li>
+<li>由于滚动条本身占用了一些空间，对于另一侧的滚动条，需要在初始尺寸下扣除被占用的那一部分</li>
+</ul>
+<p>例如，如果垂直滚动条可见，水平滚动条的总宽度需要减去垂直滚动条的宽度，防止两者重叠。</p>
+<h3 id="为什么用-ForceRebuildLayoutImmediate？"><a href="#为什么用-ForceRebuildLayoutImmediate？" class="headerlink" title="为什么用 ForceRebuildLayoutImmediate？"></a>为什么用 ForceRebuildLayoutImmediate？</h3><p><code>SetLayoutHorizontal</code> 中调用了两次 <code>ForceRebuildLayoutImmediate</code>（第一次在初始化 Viewport 后，第二次在调整垂直滚动条后）。这个调用是<strong>同步</strong>的，会立即完成布局计算，而不是等到下一帧的 <code>PerformUpdate</code>。</p>
+<p>原因是：在 <code>SetLayoutHorizontal</code> 执行过程中，后续的判断（如“Content 的高度是否超过 Viewport”）需要依赖<strong>最新的 Content 尺寸</strong>。如果不立即重建，Content 的尺寸还是旧值，判断就会出错。</p>
+<p>这也是 <code>ForceRebuildLayoutImmediate</code> 的一个典型使用场景——当需要在同一帧内获取布局后的尺寸时，必须立即执行重建。</p>
+<h2 id="三、拖拽与滚动交互事件"><a href="#三、拖拽与滚动交互事件" class="headerlink" title="三、拖拽与滚动交互事件"></a>三、拖拽与滚动交互事件</h2><p><code>ScrollRect</code> 通过实现 <code>IBeginDragHandler</code>、<code>IDragHandler</code>、<code>IEndDragHandler</code> 和 <code>IScrollHandler</code> 来响应指针交互。</p>
+<h3 id="1-拖拽事件（Drag-系列）"><a href="#1-拖拽事件（Drag-系列）" class="headerlink" title="1. 拖拽事件（Drag 系列）"></a>1. 拖拽事件（Drag 系列）</h3><p><strong>OnBeginDrag</strong></p>
+<p>初始化拖拽相关的数据：</p>
+<ul>
+<li>记录拖拽开始时的指针位置</li>
+<li>记录 Content 的当前位置</li>
+<li>缓存当前的包围盒数据（<code>m_ViewBounds</code> 和 <code>m_ContentBounds</code>）</li>
+<li>重置惯性速度（如果正在减速，立即停止）</li>
+</ul>
+<p><strong>OnDrag</strong></p>
+<p>将指针位移应用到 Content 的位置上，即 Content 跟随指针移动。</p>
+<p>但这里会根据 <code>MovementType</code> 的不同，对位移做不同的处理：</p>
+<table>
+<thead>
+<tr>
+<th>MovementType</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Unrestricted</code></td>
+<td>Content 完全跟随指针，没有边界限制</td>
+</tr>
+<tr>
+<td><code>Elastic</code></td>
+<td>Content 跟随指针，但当 Content 超出 Viewport 边界时，会产生“被拉住”的感觉，超出越多阻力越大</td>
+</tr>
+<tr>
+<td><code>Clamped</code></td>
+<td>Content 跟随指针，但严格限制在 Viewport 边界内，不会超出</td>
+</tr>
+</tbody></table>
+<p>具体的实现方式是：先计算 Content 位置 &#x3D; 初始位置 + 指针位移，然后计算 Content 与 Viewport 之间的<strong>偏移量（Offset）</strong>，即 Content 超出 Viewport 边界的距离：</p>
+<ul>
+<li><code>Unrestricted</code>：忽略偏移量</li>
+<li><code>Elastic</code>：将偏移量通过一个曲线函数（<code>ScrollRect.RubberDelta</code>）修正后再加到 Content 位置上，产生阻力效果</li>
+<li><code>Clamped</code>：直接将偏移量限制到 0，即不允许任何超出</li>
+</ul>
+<p><strong>OnEndDrag</strong></p>
+<ul>
+<li>重置拖拽标志（<code>m_Dragging = false</code>）</li>
+</ul>
+<h3 id="2-滚轮事件（IScrollHandler-OnScroll）"><a href="#2-滚轮事件（IScrollHandler-OnScroll）" class="headerlink" title="2. 滚轮事件（IScrollHandler.OnScroll）"></a>2. 滚轮事件（IScrollHandler.OnScroll）</h3><p>滚轮事件不涉及指针位置，因此 Content 的位移直接由滚轮的滚动值决定：</p>
+<blockquote>
+<p><code>position += scrollDelta * scrollSensitivity</code></p>
+</blockquote>
+<p>其中 <code>scrollDelta</code> 来自 <code>PointerEventData.scrollDelta</code>，通常 <code>y</code> 分量代表垂直滚轮，<code>x</code> 分量代表水平滚轮（如果有水平滚轮的话）。</p>
+<p>与拖拽类似，<code>Clamped</code> 模式下会对 Content 的位置进行边界限制。</p>
+<h2 id="四、物理模拟"><a href="#四、物理模拟" class="headerlink" title="四、物理模拟"></a>四、物理模拟</h2><p><code>ScrollRect</code> 的物理模拟在 <code>LateUpdate</code> 中实现，主要处理三种情况：</p>
+<h3 id="1-回弹（Elastic）"><a href="#1-回弹（Elastic）" class="headerlink" title="1. 回弹（Elastic）"></a>1. 回弹（Elastic）</h3><p>当拖拽结束，Content 处于“不完全覆盖 Viewport”的状态（即 Content 有一部分在 Viewport 之外），且 <code>MovementType = Elastic</code> 时，Content 需要<strong>回到完全覆盖 Viewport 的位置</strong>。</p>
+<p>核心实现：<code>Mathf.SmoothDamp</code> 方法，它会根据起始值、目标值、当前速度、平滑时间等参数，计算出一个平滑的插值结果，从而实现“回弹动画”。</p>
+<h3 id="2-惯性滑动"><a href="#2-惯性滑动" class="headerlink" title="2. 惯性滑动"></a>2. 惯性滑动</h3><p>当拖拽结束，Content 的<strong>速度不为 0</strong>，且开启了惯性（<code>m_Inertia = true</code>）时，Content 会继续沿当前方向滑动，并逐渐减速到 0。</p>
+<p>核心实现：</p>
+<blockquote>
+<p><code>velocity *= Mathf.Pow(m_DecelerationRate, Time.deltaTime)</code></p>
+</blockquote>
+<p><code>m_DecelerationRate</code> 是一个小于 1 且大于 0 的系数（默认是 0.135），<code>Mathf.Pow(m_DecelerationRate, deltaTime)</code> 会随着 <code>deltaTime</code> 的增加而减小，使得速度按指数衰减。当速度小于 <code>1.0</code> 时，会被强制设置为 <code>0</code>，停止滑动。</p>
+<h3 id="3-拖拽过程中的速度计算"><a href="#3-拖拽过程中的速度计算" class="headerlink" title="3. 拖拽过程中的速度计算"></a>3. 拖拽过程中的速度计算</h3><p>在拖拽过程中，如果开启了惯性，<code>ScrollRect</code> 会<strong>实时计算 Content 的当前速度</strong>：</p>
+<blockquote>
+<p><code>velocity = (content.anchoredPosition - m_PrevPosition) / Time.deltaTime</code></p>
+</blockquote>
+<p>其中 <code>m_PrevPosition</code> 是上一帧 Content 的位置。这个速度值会在 <code>OnEndDrag</code> 之后作为惯性滑动的初始速度。</p>
+<h2 id="五、重要成员方法"><a href="#五、重要成员方法" class="headerlink" title="五、重要成员方法"></a>五、重要成员方法</h2><h3 id="1-UpdateBounds"><a href="#1-UpdateBounds" class="headerlink" title="1. UpdateBounds"></a>1. UpdateBounds</h3><p><code>UpdateBounds</code> 是 <code>ScrollRect</code> 中一个核心但容易被忽略的方法，它的作用是：<strong>以 Viewport 为参考系，计算 Content 和 Viewport 的包围盒（Bounds）</strong>。</p>
+<p><strong>什么是包围盒（Bounds）？</strong></p>
+<p><code>Bounds</code> 是一个通过中心位置和宽高来在空间中确定一个矩形区域的工具。Bounds 是轴对齐的，即使 UI 元素发生了旋转，Bounds 也能计算出将其完全包含在内的最小轴对齐区域。</p>
+<p><strong>m_ContentBounds 的计算方式：</strong></p>
+<ol>
+<li>获取 Content 的四个顶点在<strong>世界空间</strong>中的坐标</li>
+<li>将这四个顶点从世界空间转换到 Viewport 的<strong>局部空间</strong></li>
+<li>遍历这四个局部坐标，从中选出 <code>minX</code>、<code>maxX</code>、<code>minY</code>、<code>maxY</code>，构成包围盒</li>
+</ol>
+<p><strong>m_ViewBounds 的计算方式：</strong> 会直接以 Viewport 自身的 中心点、尺寸来创建。</p>
+<p><strong>AdjustBounds 的作用：</strong></p>
+<p>计算完成后，<code>ScrollRect</code> 会调用 <code>AdjustBounds</code> 将 <code>m_ContentBounds</code> 调整到至少和 <code>m_ViewBounds</code> 一样大。这一步的目的是<strong>简化边界计算</strong>——例如在判断“Content 是否完全覆盖 Viewport”时，通过两个包围盒的边界大小比较，可以判断是否完全覆盖，从而触发后续的边界修正（Clamped、Elastic等）。</p>
+<p>需要注意：对包围盒的修改<strong>不会影响 Content 的实际尺寸</strong>，只是用于计算和判断。</p>
+<p><strong>Clamped 模式下的特殊处理：</strong></p>
+<p>如果 <code>MovementType = Clamped</code>，<code>AdjustBounds</code> 还会将 <code>m_ContentBounds</code> 调整到与 <code>m_ViewBounds</code> 重合的位置（如果 <code>m_ContentBounds</code> 偏离 <code>m_ViewBounds</code> 的话）。</p>
+<p>ScrollRect 中对content位置的计算几乎都依赖这两个包围盒，大体上会先计算当前状态下的包围盒，然后进行各种情景处理后，最后将包围盒的数据应用到本体上。</p>
+<h3 id="2-CalculateOffset"><a href="#2-CalculateOffset" class="headerlink" title="2. CalculateOffset"></a>2. CalculateOffset</h3><p><code>CalculateOffset</code> 是一个辅助方法，用于计算 <code>m_ContentBounds</code> 是否完全覆盖 <code>m_ViewBounds</code>，并返回两者之间的偏差向量。</p>
+<p>它的返回值的含义：</p>
+<ul>
+<li>如果 <code>Vector2.zero</code>：Content 完全覆盖 Viewport</li>
+<li>如果 <code>x &lt; 0</code>：Content 在水平方向上向右侧偏移了 <code>-x</code> 距离</li>
+<li>如果 <code>x &gt; 0</code>：Content 在水平方向上向左侧偏移了 <code>x</code> 距离</li>
+<li>垂直方向同理</li>
+</ul>
+<p>这个偏差值在 <code>OnDrag</code> 和 <code>LateUpdate</code> 中被广泛使用，用于计算 Content 的位置修正量。</p>
+<h2 id="六、性能注意事项"><a href="#六、性能注意事项" class="headerlink" title="六、性能注意事项"></a>六、性能注意事项</h2><ol>
+<li><p><strong><code>ForceRebuildLayoutImmediate</code> 的成本</strong>：<code>SetLayoutHorizontal</code> 中调用了两次强制重建，每次都会遍历 Content 下的所有子元素计算布局，对于列表项很多的情况，会有性能开销。这种成本主要发生在布局变化时，但不会在滚动的每一帧都发生。</p>
+</li>
+<li><p><strong><code>LateUpdate</code> 中的计算</strong>：即使 <code>ScrollRect</code> 处于静止状态，<code>LateUpdate</code> 中的判断（检查速度是否为 0）也会被执行。如果场景中有大量的 ScrollRect，这可能会有累积开销。</p>
+</li>
+<li><p><strong>内容更新时的重建</strong>：当 Content 中的子元素数量变化时（如动态增删列表项），需要调用 <code>SetDirty</code> 触发布局重建，否则 ScrollRect 的包围盒不会更新，滚动条的显示状态可能不正确。</p>
+</li>
+</ol>
+<h2 id="七、总结"><a href="#七、总结" class="headerlink" title="七、总结"></a>七、总结</h2><table>
+<thead>
+<tr>
+<th>核心概念</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>角色</td>
+<td>滚动视图组件，支持滑动条的动态布局、拖拽交互和物理模拟</td>
+</tr>
+<tr>
+<td>布局角色</td>
+<td>实现 <code>ILayoutGroup</code>，动态调整 Viewport 尺寸以适配滚动条显示</td>
+</tr>
+<tr>
+<td>布局策略</td>
+<td>Viewport 先填满 → 判断垂直滚动条 → 留空间 → 判断水平滚动条 → 兜底处理垂直滚动条</td>
+</tr>
+<tr>
+<td>交互事件</td>
+<td>实现 <code>IDragHandler</code> 和 <code>IScrollHandler</code>，响应拖拽和滚轮</td>
+</tr>
+<tr>
+<td>MovementType</td>
+<td><code>Unrestricted</code> &#x2F; <code>Elastic</code> &#x2F; <code>Clamped</code>，分别对应“无限制”、“回弹”、“严格限制”</td>
+</tr>
+<tr>
+<td>物理模拟</td>
+<td><code>LateUpdate</code> 中实现惯性减速（<code>DecelerationRate</code>）和回弹（<code>SmoothDamp</code>）</td>
+</tr>
+<tr>
+<td>包围盒计算</td>
+<td><code>UpdateBounds</code> 计算 <code>m_ViewBounds</code> 和 <code>m_ContentBounds</code>，以 Viewport 为参考系</td>
+</tr>
+<tr>
+<td>性能注意</td>
+<td><code>ForceRebuildLayoutImmediate</code> 的调用成本和 <code>LateUpdate</code> 的持续执行</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>本文为个人学习总结，如有不准确之处，欢迎指正交流。</em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io">Avywenna</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io/2026/07/17/ScrollRect/">https://avvywenna.github.io/2026/07/17/ScrollRect/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/UGUI/">UGUI</a><a class="post-meta__tags" href="/tags/ScrollRect/">ScrollRect</a></div><div class="post-share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">C++ Learning [持续更新中]</div></div><div class="info-2"><div class="info-item-1">C++ Learning 学习笔记</div></div></div></a><a class="pagination-related" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">UGUI 源码剖析 —— Selectable 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Selectable 基类的交互状态管理与导航机制</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/07/14/RawImage/" title="UGUI 源码剖析 —— RawImage 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-14</div><div class="info-item-2">UGUI 源码剖析 —— RawImage 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 RawImage 组件的设计定位与实现细节</div></div></div></a><a class="pagination-related" href="/2026/07/04/Mask/" title="UGUI 源码剖析 —— Mask 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-04</div><div class="info-item-2">UGUI 源码剖析 —— Mask 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Mask 组件的模板缓冲实现原理与性能特征</div></div></div></a><a class="pagination-related" href="/2026/07/02/CanvasUpdateRegistry/" title="UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-02</div><div class="info-item-2">UGUI 源码剖析 —— CanvasUpdateRegistry 调度中心</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 CanvasUpdateRegistry 的调度机制与源码细节</div></div></div></a><a class="pagination-related" href="/2026/07/02/UGUI%20Batches/" title="Unity UGUI 合批机制深度解析"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-02</div><div class="info-item-2">Unity UGUI 合批机制深度解析</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 的合批原理、深度计算机制与实用优化策略</div></div></div></a><a class="pagination-related" href="/2026/07/01/Graphic/" title="UGUI 源码剖析 —— Graphic 核心机制"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-01</div><div class="info-item-2">UGUI 源码剖析 —— Graphic 核心机制</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Graphic 类的底层原理与性能优化要点</div></div></div></a><a class="pagination-related" href="/2026/07/03/LayoutRebuilders/" title="UGUI 源码剖析 —— LayoutRebuilder"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-03</div><div class="info-item-2">UGUI 源码剖析 —— LayoutRebuilder</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 LayoutRebuilder 的布局重建机制</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/icon.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Avywenna</div><div class="author-info-description">転がる岩、君に朝が降る</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">17</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Avvywenna"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Avvywenna" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="https://space.bilibili.com/237232911" target="_blank" title="BiliBili"><i class="fab fa-bilibili" style="color: #fb7299;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">hi~ 是迷路的小猫咪吗</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81ScrollRect-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">1.</span> <span class="toc-text">一、ScrollRect 是什么？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%B8%83%E5%B1%80%E9%87%8D%E5%BB%BA%E6%B5%81%E7%A8%8B"><span class="toc-number">2.</span> <span class="toc-text">二、布局重建流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-ICanvasElement-Rebuild"><span class="toc-number">2.1.</span> <span class="toc-text">1. ICanvasElement.Rebuild</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-ILayoutElement%EF%BC%88%E4%B8%8D%E5%8F%82%E4%B8%8E%E5%B8%83%E5%B1%80%E8%AE%A1%E7%AE%97%EF%BC%89"><span class="toc-number">2.2.</span> <span class="toc-text">2. ILayoutElement（不参与布局计算）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-ILayoutGroup%EF%BC%88%E6%A0%B8%E5%BF%83%E5%B8%83%E5%B1%80%E9%80%BB%E8%BE%91%EF%BC%89"><span class="toc-number">2.3.</span> <span class="toc-text">3. ILayoutGroup（核心布局逻辑）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#SetLayoutHorizontal"><span class="toc-number">2.3.1.</span> <span class="toc-text">SetLayoutHorizontal</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SetLayoutVertical"><span class="toc-number">2.3.2.</span> <span class="toc-text">SetLayoutVertical</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E7%94%A8-ForceRebuildLayoutImmediate%EF%BC%9F"><span class="toc-number">2.4.</span> <span class="toc-text">为什么用 ForceRebuildLayoutImmediate？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E6%8B%96%E6%8B%BD%E4%B8%8E%E6%BB%9A%E5%8A%A8%E4%BA%A4%E4%BA%92%E4%BA%8B%E4%BB%B6"><span class="toc-number">3.</span> <span class="toc-text">三、拖拽与滚动交互事件</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%8B%96%E6%8B%BD%E4%BA%8B%E4%BB%B6%EF%BC%88Drag-%E7%B3%BB%E5%88%97%EF%BC%89"><span class="toc-number">3.1.</span> <span class="toc-text">1. 拖拽事件（Drag 系列）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E6%BB%9A%E8%BD%AE%E4%BA%8B%E4%BB%B6%EF%BC%88IScrollHandler-OnScroll%EF%BC%89"><span class="toc-number">3.2.</span> <span class="toc-text">2. 滚轮事件（IScrollHandler.OnScroll）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E7%89%A9%E7%90%86%E6%A8%A1%E6%8B%9F"><span class="toc-number">4.</span> <span class="toc-text">四、物理模拟</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%9B%9E%E5%BC%B9%EF%BC%88Elastic%EF%BC%89"><span class="toc-number">4.1.</span> <span class="toc-text">1. 回弹（Elastic）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E6%83%AF%E6%80%A7%E6%BB%91%E5%8A%A8"><span class="toc-number">4.2.</span> <span class="toc-text">2. 惯性滑动</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E6%8B%96%E6%8B%BD%E8%BF%87%E7%A8%8B%E4%B8%AD%E7%9A%84%E9%80%9F%E5%BA%A6%E8%AE%A1%E7%AE%97"><span class="toc-number">4.3.</span> <span class="toc-text">3. 拖拽过程中的速度计算</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E9%87%8D%E8%A6%81%E6%88%90%E5%91%98%E6%96%B9%E6%B3%95"><span class="toc-number">5.</span> <span class="toc-text">五、重要成员方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-UpdateBounds"><span class="toc-number">5.1.</span> <span class="toc-text">1. UpdateBounds</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-CalculateOffset"><span class="toc-number">5.2.</span> <span class="toc-text">2. CalculateOffset</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E6%80%A7%E8%83%BD%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="toc-number">6.</span> <span class="toc-text">六、性能注意事项</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E6%80%BB%E7%BB%93"><span class="toc-number">7.</span> <span class="toc-text">七、总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GitHub图床搭建"/></a><div class="content"><a class="title" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建">GitHub图床搭建</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于Hexo + GitHub Page的博客搭建碎碎念"/></a><div class="content"><a class="title" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念">基于Hexo + GitHub Page的博客搭建碎碎念</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++ Learning [持续更新中]"/></a><div class="content"><a class="title" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]">C++ Learning [持续更新中]</a><time datetime="2026-07-17T10:36:27.715Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— ScrollRect 组件"/></a><div class="content"><a class="title" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件">UGUI 源码剖析 —— ScrollRect 组件</a><time datetime="2026-07-17T00:00:00.000Z" title="Created 2026-07-17 00:00:00">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— Selectable 组件"/></a><div class="content"><a class="title" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件">UGUI 源码剖析 —— Selectable 组件</a><time datetime="2026-07-15T00:00:00.000Z" title="Created 2026-07-15 00:00:00">2026-07-15</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Avywenna</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><div class="js-pjax"></div><div class="aplayer no-destroy" data-id="17791700195" data-server="netease" data-type="playlist" data-fixed="true" data-autoplay="true"> </div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      false
+        ? pjax.loadUrl('/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html><html lang="zh" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>UGUI 源码剖析 —— StandaloneInputModule | Welcome</title><meta name="author" content="Avywenna"><meta name="copyright" content="Avywenna"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta name="description" content="StandaloneInputModule">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UGUI 源码剖析 —— StandaloneInputModule">
+<meta property="og:url" content="https://avvywenna.github.io/2026/07/10/StandaloneInputModule/index.html">
+<meta property="og:site_name" content="Welcome">
+<meta property="og:description" content="StandaloneInputModule">
+<meta property="og:locale">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg">
+<meta property="article:published_time" content="2026-07-10T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-10T08:34:52.000Z">
+<meta property="article:author" content="Avywenna">
+<meta property="article:tag" content="EventSystem">
+<meta property="article:tag" content="UGUI">
+<meta property="article:tag" content="Unity">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "UGUI 源码剖析 —— StandaloneInputModule",
+  "url": "https://avvywenna.github.io/2026/07/10/StandaloneInputModule/",
+  "image": "https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg",
+  "datePublished": "2026-07-10T00:00:00.000Z",
+  "dateModified": "2026-07-10T08:34:52.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Avywenna",
+      "url": "https://avvywenna.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/"><link rel="canonical" href="https://avvywenna.github.io/2026/07/10/StandaloneInputModule/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'UGUI 源码剖析 —— StandaloneInputModule',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.1"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Welcome</span></a><a class="nav-page-title" href="/"><span class="site-name">UGUI 源码剖析 —— StandaloneInputModule</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">UGUI 源码剖析 —— StandaloneInputModule</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-07-10T00:00:00.000Z" title="Created 2026-07-10 00:00:00">2026-07-10</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-07-10T08:34:52.000Z" title="Updated 2026-07-10 08:34:52">2026-07-10</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/">Unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/UGUI/">UGUI</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p><code>StandaloneInputModule</code> 负责处理跟鼠标、手指触摸、键盘导航相关的 <code>PointerEventData</code> 状态维护，同时会跟 <code>ExecuteEvents</code> 交互来下发 <code>PointerEventData</code> 及相关事件</p>
+<p><code>StandaloneInputModule</code> 中通过 <code>ProcessTouchEvents()</code> 和 <code>ProcessMouseEvent()</code> 来分别处理<strong>触摸事件</strong>和<strong>鼠标事件</strong></p>
+<p><code>StandaloneInputModule</code> 通过 <code>pointer_id</code>（或<code>finger_id</code>）在字典 <code>m_PointerData</code> 中维护指针数据，每次对于相关的 <strong>id</strong> 产生新的 <code>PointerEvent</code> 的时候，会先对 <code>PointerEventData</code> 重置，在指针事件期间，会在各个地方维护 <code>PointerEventData</code> 的状态</p>
+<h1 id="Process"><a href="#Process" class="headerlink" title="Process"></a>Process</h1><p><code>Process</code> 是 <code>BaseInputModule</code> 的事件处理逻辑入口，由 <code>EventSystem</code> 进行每帧调度</p>
+<p>在 <code>StandaloneInputModule.Process</code> 中，会进行以下操作</p>
+<ul>
+<li>派发当前 <code>EventSystem</code> 选中对象的选中刷新事件（<code>currentSelectedGameObject</code>）</li>
+<li>通过 <code>ProcessTouchEvents</code> 处理触摸事件，默认会先调用这个</li>
+<li>如果没有捕获到触摸数据，则通过 <code>ProcessMouseEvent</code> 处理鼠标事件（<code>if input.mousePresent == true</code>）</li>
+<li>最后处理键盘导航相关的事件</li>
+</ul>
+<p>我们主要关心 <code>ProcessTouchEvents</code> 和 <code>ProcessMouseEvent</code> 的具体实现逻辑</p>
+<h2 id="ProcessTouchEvents"><a href="#ProcessTouchEvents" class="headerlink" title="ProcessTouchEvents"></a>ProcessTouchEvents</h2><p>对于每一个触摸点，通过 <code>Input.GetTouch(i)</code> 来获取 <code>Touch</code> 数据，在 <code>Touch</code> 中主要封装了 <code>fingerID</code>、<code>position</code>、<code>TouchPhase</code>等信息。</p>
+<p>根据 <code>Touch</code> 数据，通过 <code>GetTouchPointerEventData(Touch input, out bool pressed, out bool released)</code> 获取通用的 <code>PointerEventData</code>，以及当前 <code>Touch</code> 的 <code>pressed</code> 和 <code>released</code> 状态</p>
+<p>接着通过 <code>eventSystem.RaycastAll(...)</code> 、<code>FindFirstRaycast(...)</code> 来捕获跟当前 <code>touch</code> 关联的检测结果（<code>raycastResult</code>），这个结果中存储触摸目标对象等数据</p>
+<p>最后将剩余数据填充到 <code>pointerData</code> （如<code>pressure、position、delta</code>等）</p>
+<hr>
+<p>对于 <code>pressed</code>，如果 <code>PointerEventData</code> 是新建状态(<code>created</code>)，或者 <code>touch.phase</code> 处于起始状态（<code>TouchPhase.Began</code>），则 赋值为 true<br>对于 <code>released</code>，如果 <code>touch.phase</code> 处于取消(<code>TouchPhase.Canceled</code>)、结束状态(<code>TouchPhase.Ended</code>)，则赋值为 true</p>
+<p>在 <code>TouchPhase</code> 的注释中可以看到 <code>TouchPhase</code> 一共有 5 个状态：</p>
+<ol>
+<li><strong>Began</strong>：手指触摸在屏幕</li>
+<li><strong>Moved</strong>：手指在屏幕上移动</li>
+<li><strong>Stationary</strong>：手指长按在屏幕上没有移动</li>
+<li><strong>Ended</strong>：手指从屏幕上抬起</li>
+<li><strong>Canceled</strong>：手指的触摸被系统取消跟踪，即虽然手指还接触着屏幕，但是系统已经丢弃了对这个触摸点的跟踪</li>
+</ol>
+<p><code>pressed</code> 和 <code>released</code> 的状态关系着 <code>PointerEventData</code> 上相关联的一系列 <code>UI</code> 对象的事件，代码中 通过 <code>ProcessTouchPress(pointerEventData, pressed, released)</code> 来对 <code>pointerEventData</code> 进行处理</p>
+<h3 id="ProcessTouchPress"><a href="#ProcessTouchPress" class="headerlink" title="ProcessTouchPress"></a>ProcessTouchPress</h3><p>简单来说，如果 <code>pressed</code> &#x3D; <code>true</code>，则会处理新旧触摸对象对应的层级链的事件派发。对于旧对象的层级链，会给这些对象派发 <code>PointerMove</code>、<code>PointerExit</code> 事件；对于新对象的层级链，会给这些对象派发 <code>PointerEnter</code>、<code>PointerMove</code> 事件。接着是处理连击计数、指针点击、拖拽状态初始化等业务</p>
+<p>在处理层级链事件派发时，有点类似于 <code>ExecuteEvents</code> 的冒泡机制，同样都是自下而上遍历，进行事件下发</p>
+<p>不同的地方在于 <code>ExecuteEvents</code> 中，冒泡会在事件被处理完后中断</p>
+<p>而 此处对层级链的处理还会跟一个变量 <code>m_SendPointerHoverToParent</code> 有关。若 <code>m_SendPointerHoverToParent</code> &#x3D; <code>true</code>，事件会一直向上传递直到到达了结束条件；若 <code>m_SendPointerHoverToParent</code> &#x3D; <code>false</code>，那么情况就会跟常规的冒泡机制一样，即一旦遇到了事件（如 <code>PointerExitHandler</code>）被处理，冒泡就会停止</p>
+<p>这个变量 <code>m_SendPointerHoverToParent</code> 定义在 <code>BaseInputModule</code> 基类中，受 <code>BaseInputModule.sendPointerHoverToParent</code> 属性控制，默认值为 <code>true</code>。</p>
+<p>在方法 <code>BaseInputModule.HandlePointerExitAndEnter()</code> 中可以看到详细的代码实现，其中可以了解到他们通过 <code>PointerEventData.hovered</code> 来管理当前触摸点相关联的层级链对象。</p>
+<hr>
+<p>如果 <code>released</code>&#x3D; <code>true</code>，则对旧对象派发 <code>PointerUp、PointerClick、Drag、EndDrag、PointerExit</code>等事件</p>
+<h2 id="ProcessMouseEvent"><a href="#ProcessMouseEvent" class="headerlink" title="ProcessMouseEvent"></a>ProcessMouseEvent</h2><p>类似地，首先根据 <code>pointer_id</code> （默认是0）来获取当前的指针数据、以及指针关联的对象。</p>
+<p>对于鼠标，会同时产生三个指针事件（左键、中建、右键），这三个 <code>PointerEventData</code> 相互独立互不干扰。</p>
+<p>最后对这三个指针分别处理点击、拖拽等事件（跟TouchEvent类似同样需要对 <code>PointerEventData</code> 相关的层级链对象的切换进行事件派发，见 <code>BaseInputModule.HandlePointerExitAndEnter()</code></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><table>
+<thead>
+<tr>
+<th>核心概念</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>输入类型</td>
+<td>触摸（<code>ProcessTouchEvents</code>）+ 鼠标（<code>ProcessMouseEvent</code>）+ 键盘导航</td>
+</tr>
+<tr>
+<td>数据维护</td>
+<td>通过 <code>m_PointerData</code> 字典维护指针状态，指针 ID 区分不同输入源</td>
+</tr>
+<tr>
+<td>按压&#x2F;释放处理</td>
+<td><code>ProcessTouchPress</code> 管理状态切换（Enter&#x2F;Exit、Press&#x2F;Click、Drag）</td>
+</tr>
+<tr>
+<td>拖拽处理</td>
+<td><code>ProcessDrag</code> 判断拖拽阈值后分发 BeginDrag&#x2F;Drag&#x2F;EndDrag 事件</td>
+</tr>
+<tr>
+<td>悬停处理</td>
+<td><code>HandlePointerExitAndEnter</code> 对比新旧 hovered 列表，分发 Enter&#x2F;Exit 事件</td>
+</tr>
+<tr>
+<td>事件分发</td>
+<td>最终由 <code>ExecuteEvents</code> 调用目标对象上对应 Handler 接口的方法</td>
+</tr>
+<tr>
+<td><code>m_SendPointerHoverToParent</code></td>
+<td>控制 Enter&#x2F;Exit 事件是否向父节点继续冒泡</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>📝 <strong>写在最后</strong><br><code>StandaloneInputModule</code> 是 UGUI 事件系统的“执行者”，它负责将原始输入（触摸&#x2F;鼠标&#x2F;键盘）转化为结构化的 <code>PointerEventData</code>，并通过 <code>ExecuteEvents</code> 驱动整个交互响应。</p>
+</blockquote>
+<hr>
+<p><em>本文为个人学习总结，如有不准确之处，欢迎指正交流。</em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io">Avywenna</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io/2026/07/10/StandaloneInputModule/">https://avvywenna.github.io/2026/07/10/StandaloneInputModule/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/UGUI/">UGUI</a><a class="post-meta__tags" href="/tags/EventSystem/">EventSystem</a></div><div class="post-share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/07/13/Image/" title="UGUI 源码剖析 —— Image 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">UGUI 源码剖析 —— Image 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Image 组件的渲染机制与网格生成逻辑</div></div></div></a><a class="pagination-related" href="/2026/07/08/UGUI%20Event%20System/" title="UGUI 源码剖析 —— EventSystem 事件系统"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">UGUI 源码剖析 —— EventSystem 事件系统</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 事件系统的调度机制与源码实现</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/07/08/UGUI%20Event%20System/" title="UGUI 源码剖析 —— EventSystem 事件系统"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-08</div><div class="info-item-2">UGUI 源码剖析 —— EventSystem 事件系统</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 事件系统的调度机制与源码实现</div></div></div></a><a class="pagination-related" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-17</div><div class="info-item-2">UGUI 源码剖析 —— ScrollRect 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 ScrollRect 的布局、交互与物理模拟机制</div></div></div></a><a class="pagination-related" href="/2026/07/14/RawImage/" title="UGUI 源码剖析 —— RawImage 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-14</div><div class="info-item-2">UGUI 源码剖析 —— RawImage 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 RawImage 组件的设计定位与实现细节</div></div></div></a><a class="pagination-related" href="/2026/07/04/Mask/" title="UGUI 源码剖析 —— Mask 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-04</div><div class="info-item-2">UGUI 源码剖析 —— Mask 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Mask 组件的模板缓冲实现原理与性能特征</div></div></div></a><a class="pagination-related" href="/2026/07/01/Graphic/" title="UGUI 源码剖析 —— Graphic 核心机制"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-01</div><div class="info-item-2">UGUI 源码剖析 —— Graphic 核心机制</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Graphic 类的底层原理与性能优化要点</div></div></div></a><a class="pagination-related" href="/2026/07/13/Image/" title="UGUI 源码剖析 —— Image 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-13</div><div class="info-item-2">UGUI 源码剖析 —— Image 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Image 组件的渲染机制与网格生成逻辑</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/icon.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Avywenna</div><div class="author-info-description">転がる岩、君に朝が降る</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">17</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Avvywenna"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Avvywenna" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="https://space.bilibili.com/237232911" target="_blank" title="BiliBili"><i class="fab fa-bilibili" style="color: #fb7299;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">hi~ 是迷路的小猫咪吗</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Process"><span class="toc-number">1.</span> <span class="toc-text">Process</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#ProcessTouchEvents"><span class="toc-number">1.1.</span> <span class="toc-text">ProcessTouchEvents</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ProcessTouchPress"><span class="toc-number">1.1.1.</span> <span class="toc-text">ProcessTouchPress</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ProcessMouseEvent"><span class="toc-number">1.2.</span> <span class="toc-text">ProcessMouseEvent</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">2.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GitHub图床搭建"/></a><div class="content"><a class="title" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建">GitHub图床搭建</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于Hexo + GitHub Page的博客搭建碎碎念"/></a><div class="content"><a class="title" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念">基于Hexo + GitHub Page的博客搭建碎碎念</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++ Learning [持续更新中]"/></a><div class="content"><a class="title" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]">C++ Learning [持续更新中]</a><time datetime="2026-07-17T10:36:27.715Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— ScrollRect 组件"/></a><div class="content"><a class="title" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件">UGUI 源码剖析 —— ScrollRect 组件</a><time datetime="2026-07-17T00:00:00.000Z" title="Created 2026-07-17 00:00:00">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— Selectable 组件"/></a><div class="content"><a class="title" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件">UGUI 源码剖析 —— Selectable 组件</a><time datetime="2026-07-15T00:00:00.000Z" title="Created 2026-07-15 00:00:00">2026-07-15</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Avywenna</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><div class="js-pjax"></div><div class="aplayer no-destroy" data-id="17791700195" data-server="netease" data-type="playlist" data-fixed="true" data-autoplay="true"> </div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      false
+        ? pjax.loadUrl('/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

@@ -1,0 +1,480 @@
+<!DOCTYPE html><html lang="zh" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>UGUI 源码剖析 —— Mask 组件 | Welcome</title><meta name="author" content="Avywenna"><meta name="copyright" content="Avywenna"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="referrer" content="no-referrer"><meta name="description" content="深入理解 UGUI 中 Mask 组件的模板缓冲实现原理与性能特征">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UGUI 源码剖析 —— Mask 组件">
+<meta property="og:url" content="https://avvywenna.github.io/2026/07/04/Mask/index.html">
+<meta property="og:site_name" content="Welcome">
+<meta property="og:description" content="深入理解 UGUI 中 Mask 组件的模板缓冲实现原理与性能特征">
+<meta property="og:locale">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg">
+<meta property="article:published_time" content="2026-07-04T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-06T06:15:29.000Z">
+<meta property="article:author" content="Avywenna">
+<meta property="article:tag" content="Mask">
+<meta property="article:tag" content="UGUI">
+<meta property="article:tag" content="Unity">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "UGUI 源码剖析 —— Mask 组件",
+  "url": "https://avvywenna.github.io/2026/07/04/Mask/",
+  "image": "https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg",
+  "datePublished": "2026-07-04T00:00:00.000Z",
+  "dateModified": "2026-07-06T06:15:29.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Avywenna",
+      "url": "https://avvywenna.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/"><link rel="canonical" href="https://avvywenna.github.io/2026/07/04/Mask/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'UGUI 源码剖析 —— Mask 组件',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.1"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Welcome</span></a><a class="nav-page-title" href="/"><span class="site-name">UGUI 源码剖析 —— Mask 组件</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">UGUI 源码剖析 —— Mask 组件</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2026-07-04T00:00:00.000Z" title="Created 2026-07-04 00:00:00">2026-07-04</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2026-07-06T06:15:29.000Z" title="Updated 2026-07-06 06:15:29">2026-07-06</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/">Unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Unity/UGUI/">UGUI</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="一、Mask-是什么？"><a href="#一、Mask-是什么？" class="headerlink" title="一、Mask 是什么？"></a>一、Mask 是什么？</h1><p><code>Mask</code> 是 UGUI 中用于实现 <strong>任意形状裁剪</strong> 的组件。与 <code>RectMask2D</code> 不同，<code>Mask</code> 不局限于矩形区域，可以配合任意 <code>Image</code> 或 <code>RawImage</code> 的网格形状（如圆形头像、星形图标）进行裁剪。</p>
+<p><code>Mask</code> 的实现依赖于 GPU 的 <strong>模板缓冲（Stencil Buffer）</strong>，这也是它与 <code>RectMask2D</code> 在性能特征上截然不同的根本原因。</p>
+<hr>
+<h1 id="二、Graphic-的材质管理机制"><a href="#二、Graphic-的材质管理机制" class="headerlink" title="二、Graphic 的材质管理机制"></a>二、Graphic 的材质管理机制</h1><p>在理解 <code>Mask</code> 之前，需要先了解 <code>Graphic</code> 的材质管理机制，因为 <code>Mask</code> 正是通过修改 Graphic 的材质来工作的。</p>
+<p><code>Graphic</code> 内部维护了两个材质相关的成员：</p>
+<ol>
+<li><strong>默认材质（只读）</strong>：通过 Canvas API 获取的通用 UI 材质（如 <code>UI/Default</code>），不可修改。</li>
+<li><strong>自定义材质（可写）</strong>：用户通过 <code>Graphic.material</code> 属性设置的材质。</li>
+</ol>
+<p>当访问 <code>Graphic.materialForRendering</code> 时，获取顺序如下：</p>
+<ul>
+<li>优先返回用户设置的 <strong>自定义材质</strong>（如果有）</li>
+<li>否则返回 <strong>默认材质</strong></li>
+</ul>
+<p>获取到基础材质后，<code>Graphic</code> 会检查自身所在的 GameObject 上是否挂载了实现了 <code>IMaterialModifier</code> 接口的组件，并按顺序依次调用 <code>GetModifiedMaterial</code> 方法，对材质进行 <strong>链式修改</strong>，最终得到用于渲染的材质实例。</p>
+<p><code>Mask</code> 正是 <code>IMaterialModifier</code> 的一种实现。</p>
+<hr>
+<h1 id="三、Mask-的-GetModifiedMaterial-流程"><a href="#三、Mask-的-GetModifiedMaterial-流程" class="headerlink" title="三、Mask 的 GetModifiedMaterial 流程"></a>三、Mask 的 GetModifiedMaterial 流程</h1><p><code>Mask.GetModifiedMaterial</code> 的核心逻辑可以拆解为以下几个步骤：</p>
+<h3 id="第一步：找到主导排序上下文的-Canvas"><a href="#第一步：找到主导排序上下文的-Canvas" class="headerlink" title="第一步：找到主导排序上下文的 Canvas"></a>第一步：找到主导排序上下文的 Canvas</h3><p>从当前 Mask 节点向上遍历，找到最近的、能够决定渲染顺序的 Canvas。这个 Canvas 将作为模板缓冲操作的“上下文容器”。</p>
+<h3 id="第二步：计算模板深度值"><a href="#第二步：计算模板深度值" class="headerlink" title="第二步：计算模板深度值"></a>第二步：计算模板深度值</h3><p>从当前 Mask 节点开始，向上遍历到该 Canvas 节点，统计路径上遇到的 <strong>所有 Mask 组件数量</strong>（不包括自身，从 0 开始计数），作为模板深度值（Stencil Depth）。</p>
+<blockquote>
+<p>模板深度的 <strong>上限为 8</strong>。如果嵌套超过 8 层，UGUI 会输出警告并限制最大深度为 8。这是因为 Unity 的模板缓冲通常使用 8 位整数（0~255），而 Mask 使用 1 位来表示一个 Mask 层级，因此最多支持 8 层嵌套。</p>
+</blockquote>
+<h3 id="第三步：将深度值转换为二进制掩码"><a href="#第三步：将深度值转换为二进制掩码" class="headerlink" title="第三步：将深度值转换为二进制掩码"></a>第三步：将深度值转换为二进制掩码</h3><p>将模板深度值 <code>d</code> 转换为二进制数：</p>
+<blockquote>
+<p>1 &lt;&lt; d</p>
+</blockquote>
+<p>例如：</p>
+<ul>
+<li><code>d = 0</code> → <code>1</code>（二进制 <code>00000001</code>）</li>
+<li><code>d = 1</code> → <code>2</code>（二进制 <code>00000010</code>）</li>
+<li><code>d = 2</code> → <code>4</code>（二进制 <code>00000100</code>）</li>
+</ul>
+<p>这个二进制数用于计算模板测试的 <strong>参考值（Reference Value）</strong>，用于区分不同层级的 Mask。</p>
+<blockquote>
+<p>💡 <strong>巧妙之处</strong>：使用二进制位移可以同时支持多层 Mask 嵌套。当多个 Mask 叠加时，每个 Mask 占用一个独立的二进制位，互不干扰。这样在渲染时，可以精确控制哪些区域被特定层级的 Mask 裁剪。</p>
+</blockquote>
+<h3 id="第四步：生成两个材质实例"><a href="#第四步：生成两个材质实例" class="headerlink" title="第四步：生成两个材质实例"></a>第四步：生成两个材质实例</h3><p>根据二进制掩码，<code>Mask</code> 会生成（或从缓存中复用）两个材质实例：</p>
+<table>
+<thead>
+<tr>
+<th>材质</th>
+<th>模板测试操作</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>写入材质（Write Material）</strong></td>
+<td>模板测试始终通过，将模板值写入缓冲</td>
+<td>在渲染 Mask 的 Graphic 图形时，将当前 Mask 的模板值写入 Stencil Buffer</td>
+</tr>
+<tr>
+<td><strong>恢复材质（Restore Material）</strong></td>
+<td>模板测试根据掩码匹配，恢复之前的模板状态</td>
+<td>在渲染完被遮罩的子元素后，清空或恢复该 Mask 占用的模板位</td>
+</tr>
+</tbody></table>
+<p>这两个材质会通过不同的 API 设置到 <code>CanvasRenderer</code> 中：</p>
+<ul>
+<li><code>SetMaterial</code>：设置 <strong>写入材质</strong>，用于渲染 Mask 自身的图形</li>
+<li><code>SetPopMaterial</code>：设置 <strong>恢复材质</strong>，用于在渲染完成后恢复模板缓冲状态</li>
+</ul>
+<hr>
+<h1 id="四、Mask-的完整渲染流程"><a href="#四、Mask-的完整渲染流程" class="headerlink" title="四、Mask 的完整渲染流程"></a>四、Mask 的完整渲染流程</h1><p>当 Canvas 执行合批和渲染时，带有 Mask 的子树的渲染流程如下：</p>
+<ol>
+<li><strong>写入阶段</strong>：GPU 渲染 Mask 自身的 Graphic（如 Image 的网格），同时将模板值写入 Stencil Buffer。此时模板缓冲中记录了该 Mask 覆盖的区域。</li>
+<li><strong>渲染子元素</strong>：子 Graphic 的材质模板测试被配置为“仅当模板值与当前 Mask 的掩码匹配时才通过”，因此只有位于 Mask 区域内的像素才会被渲染。</li>
+<li><strong>恢复阶段</strong>：渲染完成后，<code>SetPopMaterial</code> 指定的恢复材质被执行，清除该 Mask 写入的模板值，恢复模板缓冲到之前的状态，为同级或父级的其他 Mask 让路。</li>
+</ol>
+<p>子元素如果是 <code>MaskableGraphic</code>，那么同样会通过 <code>GetModifiedMaterial</code> 生成用于模板测试的材质，如Image、RawImage等。</p>
+<p><strong>这也是为什么一个 Mask 组件会产生额外的 DrawCall</strong>：</p>
+<ul>
+<li>写入阶段至少 1 个 DrawCall（渲染 Mask 自身图形）</li>
+<li>恢复阶段至少 1 个 DrawCall（清除模板状态）</li>
+<li>子元素的 DrawCall 视具体内容而定，但它们都受到模板测试的约束</li>
+</ul>
+<p>考虑有三个Mask嵌套的情况，此时对应的模板缓冲变化是这样的</p>
+<p><strong>除了第一个遮罩外，其余遮罩掩码计算公式为 <code>desiredStencilBit | (desiredStencilBit - 1)</code></strong></p>
+<blockquote>
+<p>例如 当 desiredStencilBit &#x3D; 00000010 时，模板掩码 &#x3D; 00000011</p>
+</blockquote>
+<ul>
+<li>首先从上到下它们的<code>（desiredStencilBit）</code> 分别是 <code>00000001</code>、<code>00000010</code>、<code>00000100</code></li>
+<li>对于第一个遮罩，它所覆盖范围内的缓冲值是 <code>00000001</code>，在缓冲恢复时，清空模板缓冲的设置</li>
+<li>对于第二个遮罩，它所覆盖范围内的缓冲值是 <code>00000011</code>，在恢复缓冲时，将缓冲区的值设置为 <code>00000001</code> （<code>desiredStencilBit</code> - 1）</li>
+<li>对于第二个遮罩，它所覆盖范围内的缓冲值是 <code>00000111</code>，在恢复缓冲时，将缓冲区的值设置为 <code>00000011</code> （<code>desiredStencilBit</code> - 1）</li>
+</ul>
+<p>这三个遮罩的渲染顺序为：</p>
+<p>Mask 0 写入缓冲 <code>00000001</code><br>  Mask 1 写入缓冲 <code>00000011</code><br>    Mask 2 写入缓冲 <code>00000111</code><br>    ..<br>    Mask 2 恢复缓冲 <code>00000011</code><br>  Mask 1 恢复缓冲 <code>00000001</code><br>Mask 0 恢复缓冲 <code>清空</code></p>
+<blockquote>
+<p>可以看到每次遮罩完成了自己的测试之后，会通过PopMaterial恢复到上一个遮罩设置的缓冲值，使用二进制掩码的设计使得这种操作完美契合</p>
+</blockquote>
+<hr>
+<h1 id="五、Mask-的优缺点"><a href="#五、Mask-的优缺点" class="headerlink" title="五、Mask 的优缺点"></a>五、Mask 的优缺点</h1><h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><ul>
+<li><strong>支持任意形状裁剪</strong>：Mask 的裁剪区域由 Graphic 的网格决定，因此可以配合任意 Sprite 形状（如圆形、星形、文字轮廓）实现遮罩。</li>
+</ul>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
+<li><strong>额外 DrawCall 开销</strong>：每个 Mask 组件至少增加 <strong>2 个额外的 DrawCall</strong>（写入 + 恢复），多层嵌套开销叠加。</li>
+<li><strong>打断合批</strong>：由于 Mask 的子节点使用了不同的模板测试状态，它们无法与外部同材质纹理的 UI 元素合批。</li>
+<li><strong>模板缓冲深度限制</strong>：最多支持 8 层 Mask 嵌套，超过限制会触发警告。</li>
+<li><strong>边缘锯齿问题</strong>：Mask 的裁剪结果是“像素完全显示或完全丢弃”，不会混合边缘像素的颜色，因此遮罩边缘容易出现锯齿，尤其在对角线或曲线边缘较为明显。</li>
+</ul>
+<hr>
+<h1 id="六、边缘锯齿问题详解"><a href="#六、边缘锯齿问题详解" class="headerlink" title="六、边缘锯齿问题详解"></a>六、边缘锯齿问题详解</h1><p>边缘锯齿问题，根源在于模板测试的 <strong>离散性</strong>：</p>
+<ul>
+<li>模板测试的本质上是一个 <strong>二元判断</strong>：像素在遮罩区域内（通过）或不在（丢弃）。</li>
+<li>它不会像 Alpha Blend 那样对边缘像素进行颜色混合，因此无法产生平滑的过渡效果。</li>
+<li><code>RectMask2D</code> 的边缘锯齿相对不明显，是因为矩形边界天然与像素网格对齐；而 <code>Mask</code> 常用于圆形或不规则形状，斜线或曲线边缘的锯齿会更明显。</li>
+</ul>
+<p><strong>常见解决方案</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>实现方式</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>使用 <code>SoftMask</code> 插件（第三方库）</td>
+<td>通过 Alpha 测试替代模板测试，在 Shader 中实现软边缘</td>
+<td>需要高质量遮罩效果的项目</td>
+</tr>
+<tr>
+<td>增加遮罩图形的分辨率</td>
+<td>使用更高分辨率的 Sprite，减少像素块感</td>
+<td>静态遮罩</td>
+</tr>
+<tr>
+<td>手动在遮罩图形边缘添加半透明像素</td>
+<td>在图片边缘预制渐变透明度</td>
+<td>简单场景</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="七、Mask-与-RectMask2D-的深度对比"><a href="#七、Mask-与-RectMask2D-的深度对比" class="headerlink" title="七、Mask 与 RectMask2D 的深度对比"></a>七、Mask 与 RectMask2D 的深度对比</h1><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>Mask</th>
+<th>RectMask2D</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>裁剪形状</td>
+<td>任意形状（由 Graphic 网格决定）</td>
+<td>仅矩形</td>
+</tr>
+<tr>
+<td>实现原理</td>
+<td>模板缓冲（Stencil Buffer）</td>
+<td>Shader 矩形裁剪</td>
+</tr>
+<tr>
+<td>额外 DrawCall</td>
+<td>+2（写入 + 恢复）</td>
+<td>0</td>
+</tr>
+<tr>
+<td>打断合批</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>嵌套深度限制</td>
+<td>最多 8 层</td>
+<td>无限制</td>
+</tr>
+<tr>
+<td>边缘质量</td>
+<td>容易产生锯齿</td>
+<td>相对平滑（因矩形对齐）</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>圆形头像、不规则遮罩</td>
+<td>列表滚动、矩形裁剪区域</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="八、IMaterialModifier-链式调用"><a href="#八、IMaterialModifier-链式调用" class="headerlink" title="八、IMaterialModifier 链式调用"></a>八、IMaterialModifier 链式调用</h1><p>上文中提到的 <code>IMaterialModifier</code> 是一个值得展开的设计模式。</p>
+<p>当多个 <code>IMaterialModifier</code> 同时挂载在同一个 GameObject 上时（例如同时存在 <code>Mask</code> 和某个自定义材质修改器），UGUI 会按照 <strong>组件在 Inspector 中的顺序</strong> 依次调用 <code>GetModifiedMaterial</code>，形成一个 <strong>责任链（Chain of Responsibility）</strong>：</p>
+<blockquote>
+<p>原始材质 → IMaterialModifier A → IMaterialModifier B → … → 最终材质</p>
+</blockquote>
+<p>这种设计使得材质修改逻辑可以 <strong>灵活组合</strong>，而不需要修改 <code>Graphic</code> 自身的代码。</p>
+<hr>
+<h1 id="九、潜在性能陷阱"><a href="#九、潜在性能陷阱" class="headerlink" title="九、潜在性能陷阱"></a>九、潜在性能陷阱</h1><p>在实际项目中，Mask 的使用容易踩到以下陷阱：</p>
+<ol>
+<li><strong>Mask 嵌套过深</strong>：每层 Mask 都增加额外的 DrawCall，超过 8 层还会触发警告和截断。</li>
+<li><strong>Mask 节点下的 Graphic 触发材质实例化</strong>：由于 <code>Mask</code> 会为每个子 Graphic 修改材质，可能导致大量材质实例被创建，增加内存占用。</li>
+<li><strong>频繁启用&#x2F;禁用 Mask</strong>：Mask 的启用和禁用会触发其下所有 Graphic 的材质重新计算，可能引起短暂的性能峰值。</li>
+</ol>
+<hr>
+<h1 id="十、总结"><a href="#十、总结" class="headerlink" title="十、总结"></a>十、总结</h1><table>
+<thead>
+<tr>
+<th>核心概念</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>实现原理</td>
+<td>模板缓冲（Stencil Buffer），通过 <code>IMaterialModifier</code> 修改材质</td>
+</tr>
+<tr>
+<td>模板深度</td>
+<td>从 0 开始计数，上限为 8 层嵌套</td>
+</tr>
+<tr>
+<td>二进制掩码</td>
+<td><code>1 &lt;&lt; depth</code>，用于区分不同层级的 Mask</td>
+</tr>
+<tr>
+<td>材质实例</td>
+<td>写入材质（SetMaterial）+ 恢复材质（SetPopMaterial）</td>
+</tr>
+<tr>
+<td>额外开销</td>
+<td>每个 Mask 至少 +2 DrawCall，且打断合批</td>
+</tr>
+<tr>
+<td>边缘锯齿</td>
+<td>模板测试是二元判定，无像素混合</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>任意形状遮罩，需配合 Graphic 网格</td>
+</tr>
+<tr>
+<td>与 RectMask2D 对比</td>
+<td>更灵活，但性能开销更大</td>
+</tr>
+</tbody></table>
+<hr>
+<blockquote>
+<p>📝 <strong>写在最后</strong><br><code>Mask</code> 是 UGUI 中“灵活性换性能”的典型代表。<br>理解其模板缓冲的实现原理，可以帮助你在实际项目中做出更合理的权衡：  </p>
+<ul>
+<li>矩形裁剪 → 优先用 <code>RectMask2D</code>  </li>
+<li>不规则形状 → 使用 <code>Mask</code>，但要注意嵌套深度和边缘质量  </li>
+<li>高质量不规则遮罩 → 考虑第三方方案（如 <code>SoftMask</code>）</li>
+</ul>
+</blockquote>
+<hr>
+<p><em>本文为个人学习总结，如有不准确之处，欢迎指正交流。</em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io">Avywenna</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://avvywenna.github.io/2026/07/04/Mask/">https://avvywenna.github.io/2026/07/04/Mask/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/UGUI/">UGUI</a><a class="post-meta__tags" href="/tags/Mask/">Mask</a></div><div class="post-share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/07/06/SoftMaskForUGUI/" title="SoftMaskForUGUI 源码分析与实现原理"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">SoftMaskForUGUI 源码分析与实现原理</div></div><div class="info-2"><div class="info-item-1">深入分析 SoftMaskForUGUI 插件的离屏渲染与软遮罩实现原理</div></div></div></a><a class="pagination-related" href="/2026/07/04/ClipperRegistry/" title="UGUI 源码剖析 —— ClipperRegistry 与 RectMask2D"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">UGUI 源码剖析 —— ClipperRegistry 与 RectMask2D</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 ClipperRegistry 的裁剪调度机制与 RectMask2D 实现原理</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/07/01/Graphic/" title="UGUI 源码剖析 —— Graphic 核心机制"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-01</div><div class="info-item-2">UGUI 源码剖析 —— Graphic 核心机制</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Graphic 类的底层原理与性能优化要点</div></div></div></a><a class="pagination-related" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-15</div><div class="info-item-2">UGUI 源码剖析 —— Selectable 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 Selectable 基类的交互状态管理与导航机制</div></div></div></a><a class="pagination-related" href="/2026/07/10/StandaloneInputModule/" title="UGUI 源码剖析 —— StandaloneInputModule"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-10</div><div class="info-item-2">UGUI 源码剖析 —— StandaloneInputModule</div></div><div class="info-2"><div class="info-item-1">StandaloneInputModule</div></div></div></a><a class="pagination-related" href="/2026/07/04/ClipperRegistry/" title="UGUI 源码剖析 —— ClipperRegistry 与 RectMask2D"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-04</div><div class="info-item-2">UGUI 源码剖析 —— ClipperRegistry 与 RectMask2D</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 ClipperRegistry 的裁剪调度机制与 RectMask2D 实现原理</div></div></div></a><a class="pagination-related" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-17</div><div class="info-item-2">UGUI 源码剖析 —— ScrollRect 组件</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 中 ScrollRect 的布局、交互与物理模拟机制</div></div></div></a><a class="pagination-related" href="/2026/07/02/UGUI%20Batches/" title="Unity UGUI 合批机制深度解析"><img class="cover" src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-02</div><div class="info-item-2">Unity UGUI 合批机制深度解析</div></div><div class="info-2"><div class="info-item-1">深入理解 UGUI 的合批原理、深度计算机制与实用优化策略</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/icon.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Avywenna</div><div class="author-info-description">転がる岩、君に朝が降る</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">20</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">17</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Avvywenna"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Avvywenna" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="https://space.bilibili.com/237232911" target="_blank" title="BiliBili"><i class="fab fa-bilibili" style="color: #fb7299;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">hi~ 是迷路的小猫咪吗</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%80%E3%80%81Mask-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">1.</span> <span class="toc-text">一、Mask 是什么？</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%8C%E3%80%81Graphic-%E7%9A%84%E6%9D%90%E8%B4%A8%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6"><span class="toc-number">2.</span> <span class="toc-text">二、Graphic 的材质管理机制</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%89%E3%80%81Mask-%E7%9A%84-GetModifiedMaterial-%E6%B5%81%E7%A8%8B"><span class="toc-number">3.</span> <span class="toc-text">三、Mask 的 GetModifiedMaterial 流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E6%89%BE%E5%88%B0%E4%B8%BB%E5%AF%BC%E6%8E%92%E5%BA%8F%E4%B8%8A%E4%B8%8B%E6%96%87%E7%9A%84-Canvas"><span class="toc-number">3.1.</span> <span class="toc-text">第一步：找到主导排序上下文的 Canvas</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E8%AE%A1%E7%AE%97%E6%A8%A1%E6%9D%BF%E6%B7%B1%E5%BA%A6%E5%80%BC"><span class="toc-number">3.2.</span> <span class="toc-text">第二步：计算模板深度值</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E5%B0%86%E6%B7%B1%E5%BA%A6%E5%80%BC%E8%BD%AC%E6%8D%A2%E4%B8%BA%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%8E%A9%E7%A0%81"><span class="toc-number">3.3.</span> <span class="toc-text">第三步：将深度值转换为二进制掩码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E7%94%9F%E6%88%90%E4%B8%A4%E4%B8%AA%E6%9D%90%E8%B4%A8%E5%AE%9E%E4%BE%8B"><span class="toc-number">3.4.</span> <span class="toc-text">第四步：生成两个材质实例</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9B%9B%E3%80%81Mask-%E7%9A%84%E5%AE%8C%E6%95%B4%E6%B8%B2%E6%9F%93%E6%B5%81%E7%A8%8B"><span class="toc-number">4.</span> <span class="toc-text">四、Mask 的完整渲染流程</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BA%94%E3%80%81Mask-%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="toc-number">5.</span> <span class="toc-text">五、Mask 的优缺点</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%98%E7%82%B9"><span class="toc-number">5.1.</span> <span class="toc-text">优点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%BA%E7%82%B9"><span class="toc-number">5.2.</span> <span class="toc-text">缺点</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E8%BE%B9%E7%BC%98%E9%94%AF%E9%BD%BF%E9%97%AE%E9%A2%98%E8%AF%A6%E8%A7%A3"><span class="toc-number">6.</span> <span class="toc-text">六、边缘锯齿问题详解</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%83%E3%80%81Mask-%E4%B8%8E-RectMask2D-%E7%9A%84%E6%B7%B1%E5%BA%A6%E5%AF%B9%E6%AF%94"><span class="toc-number">7.</span> <span class="toc-text">七、Mask 与 RectMask2D 的深度对比</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%AB%E3%80%81IMaterialModifier-%E9%93%BE%E5%BC%8F%E8%B0%83%E7%94%A8"><span class="toc-number">8.</span> <span class="toc-text">八、IMaterialModifier 链式调用</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E6%BD%9C%E5%9C%A8%E6%80%A7%E8%83%BD%E9%99%B7%E9%98%B1"><span class="toc-number">9.</span> <span class="toc-text">九、潜在性能陷阱</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8D%81%E3%80%81%E6%80%BB%E7%BB%93"><span class="toc-number">10.</span> <span class="toc-text">十、总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GitHub图床搭建"/></a><div class="content"><a class="title" href="/2026/07/17/%E5%9B%BE%E5%BA%8A%E6%90%AD%E5%BB%BA/" title="GitHub图床搭建">GitHub图床搭建</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo@main/btr2.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于Hexo + GitHub Page的博客搭建碎碎念"/></a><div class="content"><a class="title" href="/2026/07/17/%E7%AE%80%E5%8D%95%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="基于Hexo + GitHub Page的博客搭建碎碎念">基于Hexo + GitHub Page的博客搭建碎碎念</a><time datetime="2026-07-17T10:36:27.717Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++ Learning [持续更新中]"/></a><div class="content"><a class="title" href="/2026/07/17/C++%20Learning/" title="C++ Learning [持续更新中]">C++ Learning [持续更新中]</a><time datetime="2026-07-17T10:36:27.715Z" title="Created 2026-07-17 10:36:27">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— ScrollRect 组件"/></a><div class="content"><a class="title" href="/2026/07/17/ScrollRect/" title="UGUI 源码剖析 —— ScrollRect 组件">UGUI 源码剖析 —— ScrollRect 组件</a><time datetime="2026-07-17T00:00:00.000Z" title="Created 2026-07-17 00:00:00">2026-07-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件"><img src="https://cdn.jsdelivr.net/gh/Avvywenna/Photo/btr1.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="UGUI 源码剖析 —— Selectable 组件"/></a><div class="content"><a class="title" href="/2026/07/15/Selectable/" title="UGUI 源码剖析 —— Selectable 组件">UGUI 源码剖析 —— Selectable 组件</a><time datetime="2026-07-15T00:00:00.000Z" title="Created 2026-07-15 00:00:00">2026-07-15</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Avywenna</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><div class="js-pjax"></div><div class="aplayer no-destroy" data-id="17791700195" data-server="netease" data-type="playlist" data-fixed="true" data-autoplay="true"> </div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      false
+        ? pjax.loadUrl('/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
